@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:scanner/services/config/config.dart';
 
 class ScanState with ChangeNotifier {
   String? vendorAddress;
@@ -77,6 +78,13 @@ class ScanState with ChangeNotifier {
   void setNfcAddressError() {
     nfcAddressError = true;
     nfcAddressLoading = false;
+    notifyListeners();
+  }
+
+  Config? config;
+
+  void setConfig(Config? newConfig) {
+    config = newConfig;
     notifyListeners();
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
 import 'package:scanner/router/routes.dart';
+import 'package:scanner/services/config/service.dart';
 import 'package:scanner/services/preferences/service.dart';
 import 'package:scanner/state/state.dart';
 
@@ -11,6 +12,12 @@ void main() async {
   await dotenv.load(fileName: '.env');
 
   PreferencesService().init();
+
+  final config = ConfigService();
+
+  config.init(
+    dotenv.get('WALLET_CONFIG_URL'),
+  );
 
   runApp(provideAppState(const RootScreen()));
 }

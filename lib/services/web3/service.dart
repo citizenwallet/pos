@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -14,6 +15,7 @@ import 'package:scanner/services/web3/json_rpc.dart';
 import 'package:scanner/services/web3/paymaster_data.dart';
 import 'package:scanner/services/web3/transfer_data.dart';
 import 'package:scanner/services/web3/userop.dart';
+import 'package:scanner/utils/delay.dart';
 import 'package:web3dart/crypto.dart';
 
 import 'package:web3dart/web3dart.dart';
@@ -43,7 +45,6 @@ class Web3Service {
   late APIService _paymasterRPC;
 
   late EthereumAddress _account;
-  BigInt _nonce = BigInt.zero;
   late EthPrivateKey _credentials;
 
   late ERC20Contract _contractToken;
@@ -129,8 +130,6 @@ class Web3Service {
 
     await _entryPoint.init();
 
-    _nonce = await _entryPoint.getNonce(_account.hexEip55);
-
     _contractAccount = AccountContract(
       _chainId!.toInt(),
       _ethClient,
@@ -212,6 +211,37 @@ class Web3Service {
     return _cardManager.createAccountCallData(cardHash);
   }
 
+  /// given a tx hash, waits for the tx to be mined
+  Future<bool> waitForTxSuccess(
+    String txHash, {
+    int retryCount = 0,
+    int maxRetries = 20,
+  }) async {
+    if (retryCount >= maxRetries) {
+      return false;
+    }
+
+    final receipt = await _ethClient.getTransactionReceipt(txHash);
+    if (receipt?.status != true) {
+      // there is either no receipt or the tx is still not confirmed
+
+      // increment the retry count
+      final nextRetryCount = retryCount + 1;
+
+      // wait for a bit before retrying
+      await delay(Duration(milliseconds: 250 * (nextRetryCount)));
+
+      // retry
+      return waitForTxSuccess(
+        txHash,
+        retryCount: nextRetryCount,
+        maxRetries: maxRetries,
+      );
+    }
+
+    return true;
+  }
+
   /// makes a jsonrpc request from this wallet
   Future<SUJSONRPCResponse> _requestPaymaster(
     SUJSONRPCRequest body, {
@@ -265,6 +295,52 @@ class Web3Service {
     return (null, NetworkUnknownException());
   }
 
+  /// return paymaster data for constructing a user op
+  Future<(List<PaymasterData>, Exception?)> _getPaymasterOOData(
+    UserOp userop,
+    String eaddr,
+    String ptype, {
+    bool legacy = false,
+    int count = 1,
+  }) async {
+    final body = SUJSONRPCRequest(
+      method: 'pm_ooSponsorUserOperation',
+      params: [
+        userop.toJson(),
+        eaddr,
+        {'type': ptype},
+        count,
+      ],
+    );
+
+    try {
+      final response = await _requestPaymaster(body, legacy: legacy);
+
+      final List<dynamic> data = response.result;
+      if (data.isEmpty) {
+        throw Exception('empty paymaster data');
+      }
+
+      if (data.length != count) {
+        throw Exception('invalid paymaster data');
+      }
+
+      return (data.map((item) => PaymasterData.fromJson(item)).toList(), null);
+    } catch (exception) {
+      final strerr = exception.toString();
+
+      if (strerr.contains(gasFeeErrorMessage)) {
+        return (<PaymasterData>[], NetworkCongestedException());
+      }
+
+      if (strerr.contains(invalidBalanceErrorMessage)) {
+        return (<PaymasterData>[], NetworkInvalidBalanceException());
+      }
+    }
+
+    return (<PaymasterData>[], NetworkUnknownException());
+  }
+
   /// prepare a userop for with calldata
   Future<(String, UserOp)> prepareUserop(
       List<String> dest, List<Uint8List> calldata) async {
@@ -279,11 +355,12 @@ class Web3Service {
       userop.sender = acc.hexEip55;
 
       // determine the appropriate nonce
-      // BigInt nonce = await _entryPoint.getNonce(acc.hexEip55);
-      userop.nonce = _nonce;
+      userop.nonce = await _entryPoint.getNonce(acc.hexEip55);
+
+      print(userop.nonce);
 
       // if it's the first user op from this account, we need to deploy the account contract
-      if (_nonce == BigInt.zero) {
+      if (userop.nonce == BigInt.zero) {
         // construct the init code to deploy the account
         userop.initCode = await _accountFactory.createAccountInitCode(
           _credentials.address.hexEip55,
@@ -315,18 +392,43 @@ class Web3Service {
       userop.maxFeePerGas = fees.maxFeePerGas * BigInt.from(calldata.length);
 
       // submit the user op to the paymaster in order to receive information to complete the user op
-      final (paymasterData, paymasterErr) = await _getPaymasterData(
-        userop,
-        _entryPoint.addr,
-        'cw',
-      );
+      List<PaymasterData> paymasterOOData = [];
+      Exception? paymasterErr;
+      final useAccountNonce = userop.nonce == BigInt.zero;
+      print('useAccountNonce: $useAccountNonce');
+      if (useAccountNonce) {
+        // if it's the first user op, we should use a normal paymaster signature
+        PaymasterData? paymasterData;
+        (paymasterData, paymasterErr) = await _getPaymasterData(
+          userop,
+          _entryPoint.addr,
+          'cw',
+        );
+
+        if (paymasterData != null) {
+          paymasterOOData.add(paymasterData);
+        }
+      } else {
+        // if it's not the first user op, we should use an out of order paymaster signature
+        (paymasterOOData, paymasterErr) = await _getPaymasterOOData(
+          userop,
+          _entryPoint.addr,
+          'cw',
+        );
+      }
 
       if (paymasterErr != null) {
         throw paymasterErr;
       }
 
-      if (paymasterData == null) {
+      if (paymasterOOData.isEmpty) {
         throw Exception('unable to get paymaster data');
+      }
+
+      final paymasterData = paymasterOOData.first;
+      if (!useAccountNonce) {
+        // use the nonce received from the paymaster
+        userop.nonce = paymasterData.nonce;
       }
 
       // add the received data to the user op
@@ -391,6 +493,8 @@ class Web3Service {
     bool legacy = false,
     TransferData? data,
   }) async {
+    print(userop.nonce);
+    print(jsonEncode(userop.toJson()));
     final params = [userop.toJson(), eaddr];
     if (!legacy && data != null) {
       params.add(data.toJson());
@@ -421,7 +525,7 @@ class Web3Service {
   }
 
   /// submit a user op
-  Future<bool> submitUserop(
+  Future<String?> submitUserop(
     UserOp userop, {
     EthPrivateKey? customCredentials,
     bool legacy = false,
@@ -431,7 +535,7 @@ class Web3Service {
       bool isLegacy = legacy;
 
       // send the user op
-      final (result, useropErr) = await _submitUserOp(
+      final (txHash, useropErr) = await _submitUserOp(
         userop,
         _entryPoint.addr,
         legacy: isLegacy,
@@ -441,13 +545,10 @@ class Web3Service {
         throw useropErr;
       }
 
-      final success = result != null;
-      if (success) {
-        _nonce += BigInt.one;
-      }
-
-      return success;
-    } catch (_) {
+      return txHash;
+    } catch (e, s) {
+      print(e);
+      print(s);
       rethrow;
     }
   }

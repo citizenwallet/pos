@@ -31,10 +31,19 @@ class _ScanScreenState extends State<ScanScreen> {
 
     _logic = ScanLogic(context);
 
+    WidgetsBinding.instance.addObserver(_logic);
+
     // wait for first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _logic.init();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(_logic);
+
+    super.dispose();
   }
 
   void handleRedeem() async {
@@ -376,7 +385,7 @@ class _ScanScreenState extends State<ScanScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'WOLU $vendorBalance',
+                            vendorBalance,
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.normal,

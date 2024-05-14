@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PreferencesService {
@@ -29,5 +31,19 @@ class PreferencesService {
 
   bool isRedeemed(String address) {
     return _preferences.getBool('$redeemPrefix-address') ?? false;
+  }
+
+  // saved configs
+  Future setConfigs(dynamic value) async {
+    await _preferences.setString('configs', jsonEncode(value));
+  }
+
+  dynamic getConfigs() {
+    final config = _preferences.getString('configs');
+    if (config == null) {
+      return null;
+    }
+
+    return jsonDecode(config);
   }
 }
