@@ -30,7 +30,6 @@ class AccountFactoryContract {
   }
 
   Future<EthereumAddress> getAddress(String owner) {
-    print('owner: $owner');
     return contract.getAddress(EthereumAddress.fromHex(owner), BigInt.zero);
   }
 

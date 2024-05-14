@@ -309,6 +309,10 @@ class _ScanScreenState extends State<ScanScreen> {
     final vendorAddress = context.watch<ScanState>().vendorAddress;
     final vendorBalance = context.watch<ScanState>().vendorBalance;
 
+    final config = context.select((ScanState s) => s.config);
+
+    final isEmpty = (double.tryParse(vendorBalance) ?? 0) == 0;
+
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
@@ -385,7 +389,7 @@ class _ScanScreenState extends State<ScanScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            vendorBalance,
+                            '${config?.token.symbol ?? ''} $vendorBalance',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.normal,
@@ -405,9 +409,11 @@ class _ScanScreenState extends State<ScanScreen> {
                             height: 60,
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Opacity(
-                              opacity: !purchasing ? 1 : 0.5,
+                              opacity: !purchasing && !isEmpty ? 1 : 0.5,
                               child: FilledButton(
-                                onPressed: !purchasing ? handleRedeem : null,
+                                onPressed: !purchasing && !isEmpty
+                                    ? handleRedeem
+                                    : null,
                                 child: const Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -424,7 +430,11 @@ class _ScanScreenState extends State<ScanScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            purchasing ? 'Redeeming...' : 'Ready',
+                            purchasing
+                                ? 'Redeeming...'
+                                : isEmpty
+                                    ? 'Faucet empty'
+                                    : 'Ready',
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.normal,

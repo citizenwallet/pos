@@ -35,8 +35,6 @@ class ScanLogic extends WidgetsBindingObserver {
 
       final config = await _config.getConfig('wallet.pay.brussels');
 
-      print(jsonEncode(config.toJson()));
-
       if (config.cards == null) {
         throw Exception('No cards');
       }
@@ -64,10 +62,7 @@ class ScanLogic extends WidgetsBindingObserver {
       _state.setConfig(config);
       _state.scannerReady();
       return;
-    } catch (e, s) {
-      print(e);
-      print(s);
-    }
+    } catch (_) {}
 
     _state.scannerNotReady();
   }
@@ -89,7 +84,7 @@ class ScanLogic extends WidgetsBindingObserver {
               ),
             ) ??
             0.0,
-        config.token.symbol,
+        '',
       );
 
       _state.setVendorBalance(formattedBalance);
@@ -133,10 +128,10 @@ class ScanLogic extends WidgetsBindingObserver {
       //   throw Exception('Already redeemed');
       // }
 
-      final balance = await _web3.getBalance(_web3.account.hexEip55);
-      if (balance == BigInt.zero) {
-        throw Exception('Faucet empty');
-      }
+      // final balance = await _web3.getBalance(_web3.account.hexEip55);
+      // if (balance == BigInt.zero) {
+      //   throw Exception('Faucet empty');
+      // }
 
       final calldata = _web3.erc20TransferCallData(
           address.hexEip55,
@@ -251,11 +246,10 @@ class ScanLogic extends WidgetsBindingObserver {
   Future<void> listenToBalance() async {
     try {
       stopListenToBalance();
-      print('starting timer');
+
       updateVendorBalance();
 
       _balanceTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-        print('updating balance');
         updateVendorBalance();
       });
     } catch (_) {

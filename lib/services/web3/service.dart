@@ -357,8 +357,6 @@ class Web3Service {
       // determine the appropriate nonce
       userop.nonce = await _entryPoint.getNonce(acc.hexEip55);
 
-      print(userop.nonce);
-
       // if it's the first user op from this account, we need to deploy the account contract
       if (userop.nonce == BigInt.zero) {
         // construct the init code to deploy the account
@@ -395,7 +393,6 @@ class Web3Service {
       List<PaymasterData> paymasterOOData = [];
       Exception? paymasterErr;
       final useAccountNonce = userop.nonce == BigInt.zero;
-      print('useAccountNonce: $useAccountNonce');
       if (useAccountNonce) {
         // if it's the first user op, we should use a normal paymaster signature
         PaymasterData? paymasterData;
@@ -493,8 +490,6 @@ class Web3Service {
     bool legacy = false,
     TransferData? data,
   }) async {
-    print(userop.nonce);
-    print(jsonEncode(userop.toJson()));
     final params = [userop.toJson(), eaddr];
     if (!legacy && data != null) {
       params.add(data.toJson());
@@ -546,9 +541,7 @@ class Web3Service {
       }
 
       return txHash;
-    } catch (e, s) {
-      print(e);
-      print(s);
+    } catch (_) {
       rethrow;
     }
   }
