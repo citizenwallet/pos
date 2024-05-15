@@ -11,7 +11,7 @@ void main() async {
 
   await dotenv.load(fileName: '.env');
 
-  PreferencesService().init();
+  await PreferencesService().init();
 
   final config = ConfigService();
 

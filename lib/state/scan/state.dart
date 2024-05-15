@@ -24,6 +24,10 @@ class ScanState with ChangeNotifier {
   String redeemAmount = '0.10';
 
   bool get loading => status == ScanStateType.loading;
+  bool get redeeming =>
+      status == ScanStateType.redeeming ||
+      status == ScanStateType.verifying ||
+      status == ScanStateType.verified;
   bool get insufficientBalance =>
       (double.tryParse(vendorBalance) ?? 0.0) <
           (double.tryParse(redeemAmount) ?? 0.0) ||
@@ -115,6 +119,12 @@ class ScanState with ChangeNotifier {
 
   void setRedeemBalance(String balance) {
     redeemBalance = balance;
+    notifyListeners();
+  }
+
+  List<Config> configs = [];
+  void setConfigs(List<Config> newConfigs) {
+    configs = newConfigs;
     notifyListeners();
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import 'package:scanner/services/config/config.dart';
 import 'package:scanner/state/products/state.dart';
 import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/scan/state.dart';
@@ -177,6 +178,11 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
+  void handleCommunityPress(BuildContext context, Config config) {
+    print('community: ${config.community.name}');
+    _logic.init(alias: config.community.alias);
+  }
+
   void handleTopUp() async {
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
@@ -294,9 +300,12 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+
     final loading = context.watch<ScanState>().loading;
 
     final ready = context.watch<ScanState>().ready;
+    final redeeming = context.watch<ScanState>().redeeming;
 
     final vendorAddress = context.watch<ScanState>().vendorAddress;
     final vendorBalance = context.watch<ScanState>().vendorBalance;
@@ -306,6 +315,7 @@ class _ScanScreenState extends State<ScanScreen> {
     final insufficientBalance = context.watch<ScanState>().insufficientBalance;
 
     final config = context.select((ScanState s) => s.config);
+    final configs = context.select((ScanState s) => s.configs);
 
     final status = context.select((ScanState s) => s.status);
     final statusError = context.select((ScanState s) => s.statusError);
@@ -313,27 +323,79 @@ class _ScanScreenState extends State<ScanScreen> {
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
-        appBar: AppBar(
-          title: !loading ? const Text('Faucet') : null,
-          actions: [
-            PopupMenuButton<MenuOption>(
-              onSelected: (MenuOption item) {
-                handleMenuItemPress(context, item);
-              },
-              itemBuilder: (BuildContext context) =>
-                  <PopupMenuEntry<MenuOption>>[
-                const PopupMenuItem<MenuOption>(
-                  value: MenuOption.withdraw,
-                  child: Text('Withdraw'),
+        appBar: !loading
+            ? AppBar(
+                title: PopupMenuButton<Config>(
+                  onSelected: (Config item) {
+                    handleCommunityPress(context, item);
+                  },
+                  enabled: !redeeming,
+                  offset: const Offset(0, 40),
+                  itemBuilder: (BuildContext context) => configs
+                      .where((c) => c.cards != null)
+                      .map<PopupMenuEntry<Config>>(
+                        (c) => PopupMenuItem<Config>(
+                          value: c,
+                          child: Text(c.community.name),
+                        ),
+                      )
+                      .toList(),
+                  child: AnimatedOpacity(
+                    opacity: redeeming ? 0.5 : 1,
+                    duration: const Duration(milliseconds: 500),
+                    child: Container(
+                      height: 40,
+                      width: 200,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.grey,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              config?.community.name ?? 'No selection',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down),
+                          const SizedBox(width: 8),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                const PopupMenuItem<MenuOption>(
-                  value: MenuOption.readCardBalance,
-                  child: Text('Read card balance'),
-                ),
-              ],
-            ),
-          ],
-        ),
+                actions: [
+                  PopupMenuButton<MenuOption>(
+                    onSelected: (MenuOption item) {
+                      handleMenuItemPress(context, item);
+                    },
+                    itemBuilder: (BuildContext context) =>
+                        <PopupMenuEntry<MenuOption>>[
+                      const PopupMenuItem<MenuOption>(
+                        value: MenuOption.withdraw,
+                        child: Text('Withdraw'),
+                      ),
+                      const PopupMenuItem<MenuOption>(
+                        value: MenuOption.readCardBalance,
+                        child: Text('Read card balance'),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            : null,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -362,11 +424,23 @@ class _ScanScreenState extends State<ScanScreen> {
                   ),
                 if (!loading && vendorAddress != null)
                   Expanded(
+                    flex: 2,
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          QR(data: vendorAddress),
+                          const Text(
+                            'Faucet',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          QR(
+                            data: vendorAddress,
+                            size: width - 120,
+                          ),
                           const SizedBox(height: 16),
                           OutlinedButton.icon(
                             onPressed: handleCopy,

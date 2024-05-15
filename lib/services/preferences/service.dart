@@ -54,4 +54,12 @@ class PreferencesService {
 
     return jsonDecode(config);
   }
+
+  Future setLastAlias(String value) async {
+    await _preferences.setString('lastAlias', value);
+  }
+
+  String? getLastAlias() {
+    return _preferences.getString('lastAlias');
+  }
 }

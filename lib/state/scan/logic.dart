@@ -29,13 +29,25 @@ class ScanLogic extends WidgetsBindingObserver {
 
   ScanLogic(BuildContext context) : _state = context.read<ScanState>();
 
-  Future<void> init() async {
+  Future<void> init({String? alias}) async {
     try {
       _state.loadScanner();
 
       _web3 = Web3Service();
 
-      final config = await _config.getConfig('wallet.pay.brussels');
+      String? selectedAlias = alias ?? _preferences.getLastAlias();
+      if (selectedAlias == null) {
+        final configs =
+            (await _config.getConfigs()).where((c) => c.cards != null).toList();
+
+        if (configs.isEmpty) {
+          throw Exception('No configs');
+        }
+
+        selectedAlias = configs.first.community.alias;
+      }
+
+      final config = await _config.getConfig(selectedAlias);
 
       if (config.cards == null) {
         throw Exception('No cards');
@@ -62,10 +74,13 @@ class ScanLogic extends WidgetsBindingObserver {
       listenToBalance();
 
       _state.setConfig(config);
+      _state.setConfigs(await _config.getConfigs());
 
       final redeemAmount = _preferences.getRedeemAmount(config.token.address);
 
       _state.updateRedeemAmount(redeemAmount);
+
+      await _preferences.setLastAlias(selectedAlias);
 
       _state.scannerReady();
       return;
