@@ -15,6 +15,8 @@ import 'package:scanner/services/web3/utils.dart';
 import 'package:scanner/state/scan/state.dart';
 import 'package:scanner/utils/currency.dart';
 import 'package:scanner/utils/qr.dart';
+import 'package:scanner/utils/random.dart';
+import 'package:web3dart/web3dart.dart';
 
 class ScanLogic extends WidgetsBindingObserver {
   final ScanState _state;
@@ -60,9 +62,17 @@ class ScanLogic extends WidgetsBindingObserver {
       listenToBalance();
 
       _state.setConfig(config);
+
+      final redeemAmount = _preferences.getRedeemAmount(config.token.address);
+
+      _state.updateRedeemAmount(redeemAmount);
+
       _state.scannerReady();
       return;
-    } catch (_) {}
+    } catch (e, s) {
+      print(e);
+      print(s);
+    }
 
     _state.scannerNotReady();
   }
@@ -91,6 +101,26 @@ class ScanLogic extends WidgetsBindingObserver {
     } catch (_) {}
   }
 
+  Future<void> updateRedeemBalance(EthereumAddress address,
+      {int decimals = 6}) async {
+    try {
+      final balance = await _web3.getBalance(address.hexEip55);
+
+      final formattedBalance = formatCurrency(
+        double.tryParse(
+              fromDoubleUnit(
+                balance.toString(),
+                decimals: decimals,
+              ),
+            ) ??
+            0.0,
+        '',
+      );
+
+      _state.setRedeemBalance(formattedBalance);
+    } catch (_) {}
+  }
+
   void copyVendorAddress() {
     try {
       final vendorAddress = _web3.account.hexEip55;
@@ -99,13 +129,23 @@ class ScanLogic extends WidgetsBindingObserver {
     } catch (_) {}
   }
 
-  Future<String> redeem() async {
+  Timer? resetStatusTimer;
+  String runningRedeemAction = '';
+
+  Future<void> redeem() async {
     try {
+      final currentRedeemAction = generateRandomId();
+      runningRedeemAction = currentRedeemAction;
+
+      resetStatusTimer?.cancel();
+
       stopListenToBalance();
 
-      const amount = '0.1';
+      final amount = _state.redeemAmount;
 
-      _state.startPurchasing(amount);
+      if (runningRedeemAction == currentRedeemAction) {
+        _state.updateStatus(ScanStateType.readingNFC);
+      }
 
       final config = _state.config;
       if (config == null) {
@@ -128,10 +168,7 @@ class ScanLogic extends WidgetsBindingObserver {
       //   throw Exception('Already redeemed');
       // }
 
-      // final balance = await _web3.getBalance(_web3.account.hexEip55);
-      // if (balance == BigInt.zero) {
-      //   throw Exception('Faucet empty');
-      // }
+      await updateRedeemBalance(address, decimals: config.token.decimals);
 
       final calldata = _web3.erc20TransferCallData(
           address.hexEip55,
@@ -139,6 +176,10 @@ class ScanLogic extends WidgetsBindingObserver {
             amount,
             decimals: config.token.decimals,
           ));
+
+      if (runningRedeemAction == currentRedeemAction) {
+        _state.updateStatus(ScanStateType.redeeming);
+      }
 
       final (_, userop) =
           await _web3.prepareUserop([_web3.tokenAddress.hexEip55], [calldata]);
@@ -152,32 +193,60 @@ class ScanLogic extends WidgetsBindingObserver {
         throw Exception('Failed to redeem');
       }
 
-      if (userop.nonce == BigInt.zero) {
-        final success = await _web3.waitForTxSuccess(txHash);
-
-        if (!success) {
-          throw Exception('Failed to redeem');
-        }
+      if (runningRedeemAction == currentRedeemAction) {
+        _state.updateStatus(ScanStateType.verifying);
       }
+
+      final success = await _web3.waitForTxSuccess(txHash);
+
+      if (!success) {
+        throw Exception('Failed to redeem');
+      }
+
+      if (runningRedeemAction == currentRedeemAction) {
+        _state.updateStatus(ScanStateType.verified);
+      }
+
+      await updateRedeemBalance(address, decimals: config.token.decimals);
 
       _preferences.setRedeemed(address.hexEip55);
 
-      _state.stopPurchasing();
+      resetStatusTimer?.cancel();
+      resetStatusTimer = Timer(const Duration(seconds: 5), () {
+        _state.updateStatus(ScanStateType.ready);
+      });
 
       listenToBalance();
-      return 'Redeemed $symbol $amount';
+
+      runningRedeemAction = '';
+      return;
     } catch (e) {
+      resetStatusTimer?.cancel();
+      resetStatusTimer = Timer(const Duration(seconds: 5), () {
+        _state.updateStatus(ScanStateType.ready);
+      });
+
       if (e is Exception) {
-        _state.stopPurchasing();
-        return e.toString().replaceFirst('Exception: ', '');
+        _state.setRedeemBalance('0.00');
+
+        listenToBalance();
+
+        _state.setStatusError(
+            ScanStateType.error, e.toString().replaceFirst('Exception: ', ''));
+
+        runningRedeemAction = '';
+        return;
       }
     }
 
-    _state.stopPurchasing();
-
+    _state.setRedeemBalance('0.00');
     listenToBalance();
 
-    return 'Failed to purchase';
+    _state.setStatusError(
+        ScanStateType.error, 'Failed to redeem. Please try again.');
+
+    runningRedeemAction = '';
+    return;
   }
 
   Future<bool> withdraw(String value) async {

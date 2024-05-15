@@ -1,43 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:scanner/services/config/config.dart';
 
+enum ScanStateType {
+  loading,
+  ready,
+  notReady,
+  readingNFC,
+  redeeming,
+  verifying,
+  verified,
+  error,
+}
+
 class ScanState with ChangeNotifier {
   String? vendorAddress;
   String vendorBalance = '0.00';
 
-  bool loading = true;
-  bool ready = false;
-  bool purchasing = false;
+  String? redeemBalance = '0.00';
 
-  String purchaseAmount = '';
+  ScanStateType status = ScanStateType.loading;
+  String statusError = '';
+
+  String redeemAmount = '0.10';
+
+  bool get loading => status == ScanStateType.loading;
+  bool get insufficientBalance =>
+      (double.tryParse(vendorBalance) ?? 0.0) <
+          (double.tryParse(redeemAmount) ?? 0.0) ||
+      (double.tryParse(vendorBalance) ?? 0.0) == 0.0;
+  bool get ready =>
+      (status == ScanStateType.ready ||
+          status == ScanStateType.verifying ||
+          status == ScanStateType.verified) &&
+      (double.tryParse(vendorBalance) ?? 0.0) >=
+          (double.tryParse(redeemAmount) ?? 0.0);
 
   void loadScanner() {
-    loading = true;
-    ready = false;
+    status = ScanStateType.loading;
     notifyListeners();
   }
 
   void scannerReady() {
-    loading = false;
-    ready = true;
+    status = ScanStateType.ready;
     notifyListeners();
   }
 
   void scannerNotReady() {
-    loading = false;
-    ready = false;
+    status = ScanStateType.notReady;
     notifyListeners();
   }
 
-  void startPurchasing(String amount) {
-    purchasing = true;
-    purchaseAmount = amount;
+  void updateStatus(ScanStateType status) {
+    this.status = status;
     notifyListeners();
   }
 
-  void stopPurchasing() {
-    purchasing = false;
-    purchaseAmount = '';
+  void setStatusError(ScanStateType status, String error) {
+    this.status = status;
+    statusError = error;
+    notifyListeners();
+  }
+
+  void updateRedeemAmount(String amount) {
+    redeemAmount = amount;
     notifyListeners();
   }
 
@@ -85,6 +110,11 @@ class ScanState with ChangeNotifier {
 
   void setConfig(Config? newConfig) {
     config = newConfig;
+    notifyListeners();
+  }
+
+  void setRedeemBalance(String balance) {
+    redeemBalance = balance;
     notifyListeners();
   }
 }

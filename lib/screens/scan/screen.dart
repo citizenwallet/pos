@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
@@ -47,16 +48,7 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   void handleRedeem() async {
-    final message = await _logic.redeem();
-    if (!mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
+    await _logic.redeem();
   }
 
   void handleCopy() {
@@ -304,19 +296,25 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget build(BuildContext context) {
     final loading = context.watch<ScanState>().loading;
 
-    final purchasing = context.watch<ScanState>().purchasing;
+    final ready = context.watch<ScanState>().ready;
 
     final vendorAddress = context.watch<ScanState>().vendorAddress;
     final vendorBalance = context.watch<ScanState>().vendorBalance;
+    final redeemBalance = context.watch<ScanState>().redeemBalance;
+    final redeemAmount = context.watch<ScanState>().redeemAmount;
+
+    final insufficientBalance = context.watch<ScanState>().insufficientBalance;
 
     final config = context.select((ScanState s) => s.config);
 
-    final isEmpty = (double.tryParse(vendorBalance) ?? 0) == 0;
+    final status = context.select((ScanState s) => s.status);
+    final statusError = context.select((ScanState s) => s.statusError);
 
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
         appBar: AppBar(
+          title: !loading ? const Text('Faucet') : null,
           actions: [
             PopupMenuButton<MenuOption>(
               onSelected: (MenuOption item) {
@@ -368,14 +366,6 @@ class _ScanScreenState extends State<ScanScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
-                            'Faucet',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
                           QR(data: vendorAddress),
                           const SizedBox(height: 16),
                           OutlinedButton.icon(
@@ -388,10 +378,18 @@ class _ScanScreenState extends State<ScanScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
+                          const Text(
+                            'Balance',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
                           Text(
                             '${config?.token.symbol ?? ''} $vendorBalance',
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 22,
                               fontWeight: FontWeight.normal,
                             ),
                           ),
@@ -409,19 +407,17 @@ class _ScanScreenState extends State<ScanScreen> {
                             height: 60,
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Opacity(
-                              opacity: !purchasing && !isEmpty ? 1 : 0.5,
+                              opacity: ready ? 1 : 0.5,
                               child: FilledButton(
-                                onPressed: !purchasing && !isEmpty
-                                    ? handleRedeem
-                                    : null,
-                                child: const Row(
+                                onPressed: ready ? handleRedeem : null,
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.nfc),
-                                    SizedBox(width: 8),
+                                    const Icon(Icons.nfc),
+                                    const SizedBox(width: 8),
                                     Text(
-                                      'Redeem',
-                                      style: TextStyle(fontSize: 24),
+                                      'Redeem $redeemAmount ${config?.token.symbol ?? ''}',
+                                      style: const TextStyle(fontSize: 22),
                                     ),
                                   ],
                                 ),
@@ -429,17 +425,140 @@ class _ScanScreenState extends State<ScanScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Text(
-                            purchasing
-                                ? 'Redeeming...'
-                                : isEmpty
-                                    ? 'Faucet empty'
-                                    : 'Ready',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.normal,
-                            ),
-                          ),
+                          ...(switch (status) {
+                            ScanStateType.loading => [
+                                const Text(
+                                  'Loading',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ScanStateType.ready => [
+                                Text(
+                                  insufficientBalance
+                                      ? 'Faucet empty'
+                                      : 'Ready',
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ScanStateType.notReady => [
+                                const Text(
+                                  'Not ready',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ScanStateType.readingNFC => [
+                                const Text(
+                                  'Reading tag...',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ScanStateType.error => [
+                                const Text(
+                                  'An error occurred',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  statusError,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            _ => [
+                                Text(
+                                  switch (status) {
+                                    ScanStateType.verifying => 'Redeemed',
+                                    ScanStateType.verified => 'Confirmed',
+                                    _ => 'Redeeming...',
+                                  },
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      height: 20,
+                                      width: 20,
+                                      decoration: BoxDecoration(
+                                        color: Colors.greenAccent,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: Colors.greenAccent,
+                                          width: 2,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 500),
+                                      height: 20,
+                                      width: 20,
+                                      decoration: BoxDecoration(
+                                        color: status == ScanStateType.redeeming
+                                            ? Colors.greenAccent.withOpacity(0)
+                                            : Colors.greenAccent,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: Colors.greenAccent,
+                                          width: 2,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 500),
+                                      height: 20,
+                                      width: 20,
+                                      decoration: BoxDecoration(
+                                        color: status ==
+                                                    ScanStateType.redeeming ||
+                                                status ==
+                                                    ScanStateType.verifying
+                                            ? Colors.greenAccent.withOpacity(0)
+                                            : Colors.greenAccent,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: Colors.greenAccent,
+                                          width: 2,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Current balance: $redeemBalance',
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              ]
+                          }),
                         ],
                       ),
                     ),

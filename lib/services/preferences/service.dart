@@ -33,6 +33,14 @@ class PreferencesService {
     return _preferences.getBool('$redeemPrefix-address') ?? false;
   }
 
+  void setRedeemAmount(String token, String amount) {
+    _preferences.setString('token-$token', amount);
+  }
+
+  String getRedeemAmount(String token) {
+    return _preferences.getString('token-$token') ?? '0.10';
+  }
+
   // saved configs
   Future setConfigs(dynamic value) async {
     await _preferences.setString('configs', jsonEncode(value));
