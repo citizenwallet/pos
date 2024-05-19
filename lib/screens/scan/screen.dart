@@ -13,7 +13,7 @@ import 'package:scanner/utils/currency.dart';
 import 'package:scanner/utils/strings.dart';
 import 'package:scanner/widget/qr/qr.dart';
 
-enum MenuOption { withdraw, readCardBalance }
+enum MenuOption { amount, withdraw, readCardBalance }
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -70,7 +70,7 @@ class _ScanScreenState extends State<ScanScreen> {
     });
   }
 
-  void handleWithdraw(BuildContext context) async {
+  Future<bool> handleCodeVerification() async {
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
 
@@ -92,6 +92,7 @@ class _ScanScreenState extends State<ScanScreen> {
               maxLines: 1,
               maxLength: 6,
               autocorrect: false,
+              autofocus: true,
               enableSuggestions: false,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: false,
@@ -115,8 +116,81 @@ class _ScanScreenState extends State<ScanScreen> {
         codeValue.isEmpty ||
         codeValue.length != 6 ||
         codeValue != '123987') {
+      return false;
+    }
+
+    return true;
+  }
+
+  void handleModifyAmount(BuildContext context) async {
+    final ok = await handleCodeVerification();
+    if (!ok) {
       return;
     }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+
+    TextEditingController amountController = TextEditingController();
+
+    final amountValue = await showModalBottomSheet<String>(
+      context: context,
+      builder: (modalContext) => Container(
+        height: height * 0.75,
+        width: width,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Column(
+          children: [
+            TextField(
+              controller: amountController,
+              decoration: const InputDecoration(
+                labelText: 'Amount',
+              ),
+              autofocus: true,
+              maxLines: 1,
+              autocorrect: false,
+              enableSuggestions: false,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: false,
+              ),
+              textInputAction: TextInputAction.done,
+            ),
+            OutlinedButton.icon(
+              onPressed: () {
+                modalContext.pop(amountController.text);
+              },
+              icon: const Icon(Icons.qr_code),
+              label: const Text('Confirm'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (amountValue == null || amountValue.isEmpty) {
+      return;
+    }
+
+    _logic.updateRedeemAmount(amountValue);
+  }
+
+  void handleWithdraw(BuildContext context) async {
+    final ok = await handleCodeVerification();
+    if (!ok) {
+      return;
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
 
     final qrValue = await showModalBottomSheet<String>(
       context: context,
@@ -148,7 +222,7 @@ class _ScanScreenState extends State<ScanScreen> {
     }
 
     final success = await _logic.withdraw(qrValue);
-    if (!mounted) {
+    if (!context.mounted) {
       return;
     }
     if (!success) {
@@ -169,6 +243,9 @@ class _ScanScreenState extends State<ScanScreen> {
 
   void handleMenuItemPress(BuildContext context, MenuOption item) {
     switch (item) {
+      case MenuOption.amount:
+        handleModifyAmount(context);
+        break;
       case MenuOption.withdraw:
         handleWithdraw(context);
         break;
@@ -181,62 +258,6 @@ class _ScanScreenState extends State<ScanScreen> {
   void handleCommunityPress(BuildContext context, Config config) {
     print('community: ${config.community.name}');
     _logic.init(alias: config.community.alias);
-  }
-
-  void handleTopUp() async {
-    final width = MediaQuery.of(context).size.width;
-    final height = MediaQuery.of(context).size.height;
-
-    final address = await _logic.read(
-      message: 'Scan to display top up link',
-      successMessage: 'Card scanned',
-    );
-    if (address == null) {
-      return;
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    showModalBottomSheet<String>(
-      context: context,
-      builder: (modalContext) => Container(
-        height: height * 0.75,
-        width: width,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              'Scan to top up your wallet',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            QR(
-              data:
-                  'https://topup.citizenspring.earth/WOLU.base?account=$address&redirectUrl=https://nfcwallet.xyz',
-              size: width - 80,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 60,
-              child: Text(
-                'https://topup.citizenspring.earth/WOLU.base?account=$address',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.normal,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void handleReadNFC() async {
@@ -256,6 +277,7 @@ class _ScanScreenState extends State<ScanScreen> {
     }
 
     final balance = context.read<ScanState>().nfcBalance;
+    final config = context.read<ScanState>().config;
 
     showModalBottomSheet<String>(
       context: context,
@@ -278,7 +300,7 @@ class _ScanScreenState extends State<ScanScreen> {
             QR(data: address, size: width - 80),
             const SizedBox(height: 16),
             Text(
-              'Balance: ${balance ?? '0.0'} WOLU',
+              'Balance: ${balance ?? '0.0'} ${config?.token.symbol ?? ''}',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.normal,
@@ -383,6 +405,10 @@ class _ScanScreenState extends State<ScanScreen> {
                     },
                     itemBuilder: (BuildContext context) =>
                         <PopupMenuEntry<MenuOption>>[
+                      const PopupMenuItem<MenuOption>(
+                        value: MenuOption.amount,
+                        child: Text('Modify redeem amount'),
+                      ),
                       const PopupMenuItem<MenuOption>(
                         value: MenuOption.withdraw,
                         child: Text('Withdraw'),

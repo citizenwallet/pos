@@ -136,6 +136,19 @@ class ScanLogic extends WidgetsBindingObserver {
     } catch (_) {}
   }
 
+  void updateRedeemAmount(String amount) {
+    String cleanedAmount = amount.replaceAll(',', '.').trim();
+
+    final parsedAmount = double.tryParse(cleanedAmount) ?? 0.0;
+    if (parsedAmount < 0.0) {
+      cleanedAmount = '0.0';
+    }
+
+    _preferences.setRedeemAmount(_state.config!.token.address, cleanedAmount);
+
+    _state.updateRedeemAmount(cleanedAmount);
+  }
+
   void copyVendorAddress() {
     try {
       final vendorAddress = _web3.account.hexEip55;
@@ -156,15 +169,15 @@ class ScanLogic extends WidgetsBindingObserver {
 
       stopListenToBalance();
 
-      final amount = _state.redeemAmount;
-
-      if (runningRedeemAction == currentRedeemAction) {
-        _state.updateStatus(ScanStateType.readingNFC);
-      }
-
       final config = _state.config;
       if (config == null) {
         throw Exception('No config');
+      }
+
+      final amount = _preferences.getRedeemAmount(config.token.address);
+
+      if (runningRedeemAction == currentRedeemAction) {
+        _state.updateStatus(ScanStateType.readingNFC);
       }
 
       final symbol = config.token.symbol;

@@ -38,7 +38,7 @@ class PreferencesService {
   }
 
   String getRedeemAmount(String token) {
-    return _preferences.getString('token-$token') ?? '0.10';
+    return _preferences.getString('token-$token') ?? '1.00';
   }
 
   // saved configs

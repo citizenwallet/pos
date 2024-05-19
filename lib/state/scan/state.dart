@@ -21,7 +21,7 @@ class ScanState with ChangeNotifier {
   ScanStateType status = ScanStateType.loading;
   String statusError = '';
 
-  String redeemAmount = '0.10';
+  String redeemAmount = '1.00';
 
   bool get loading => status == ScanStateType.loading;
   bool get redeeming =>
