@@ -127,4 +127,11 @@ class ScanState with ChangeNotifier {
     configs = newConfigs;
     notifyListeners();
   }
+
+  bool nfcReading = false;
+
+  void setNfcReading(bool reading) {
+    nfcReading = reading;
+    notifyListeners();
+  }
 }

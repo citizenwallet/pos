@@ -16,8 +16,24 @@ class NFCService {
 
     NfcManager.instance.startSession(
       alertMessage: message ?? 'Scan to confirm',
+      pollingOptions: {
+        NfcPollingOption.iso14443,
+        NfcPollingOption.iso15693,
+        NfcPollingOption.iso18092,
+      },
       onDiscovered: (NfcTag tag) async {
-        final List<int> identifier = tag.data['mifare']['identifier'];
+        final nfcMetaData = tag.data['mifare'] ?? tag.data['nfca'];
+        if (nfcMetaData == null) {
+          if (completer.isCompleted) return;
+          completer.completeError('Invalid tag');
+          return;
+        }
+        final List<int>? identifier = nfcMetaData['identifier'];
+        if (identifier == null) {
+          if (completer.isCompleted) return;
+          completer.completeError('Invalid tag');
+          return;
+        }
 
         String uid = identifier
             .map((byte) => byte.toRadixString(16).padLeft(2, '0'))

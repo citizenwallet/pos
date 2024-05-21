@@ -182,10 +182,14 @@ class ScanLogic extends WidgetsBindingObserver {
 
       final symbol = config.token.symbol;
 
+      _state.setNfcReading(true);
+
       final serialNumber = await _nfc.readSerialNumber(
         message: 'Scan to redeem $symbol $amount',
         successMessage: 'Redeemed $symbol $amount',
       );
+
+      _state.setNfcReading(false);
 
       final cardHash = await _web3.getCardHash(serialNumber);
 
@@ -315,10 +319,14 @@ class ScanLogic extends WidgetsBindingObserver {
     try {
       _state.setNfcAddressRequest();
 
+      _state.setNfcReading(true);
+
       final serialNumber = await _nfc.readSerialNumber(
         message: message,
         successMessage: successMessage,
       );
+
+      _state.setNfcReading(false);
 
       final cardHash = await _web3.getCardHash(serialNumber);
 
@@ -326,8 +334,26 @@ class ScanLogic extends WidgetsBindingObserver {
 
       final balance = await _web3.getBalance(address.hexEip55);
 
+      final config = _state.config;
+      if (config == null) {
+        throw Exception('No config');
+      }
+
+      final formattedBalance = formatCurrency(
+        double.tryParse(
+              fromDoubleUnit(
+                balance.toString(),
+                decimals: config.token.decimals,
+              ),
+            ) ??
+            0.0,
+        '',
+      );
+
+      print(balance);
+
       _state.setNfcAddressSuccess(address.hexEip55);
-      _state.setAddressBalance(fromUnit(balance, decimals: 6));
+      _state.setAddressBalance(formattedBalance);
 
       return address.hexEip55;
     } catch (_) {
@@ -358,6 +384,10 @@ class ScanLogic extends WidgetsBindingObserver {
   void stopListenToBalance() {
     _balanceTimer?.cancel();
     _balanceTimer = null;
+  }
+
+  void cancelScan() {
+    _nfc.stop();
   }
 
   @override
