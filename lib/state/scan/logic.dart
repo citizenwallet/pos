@@ -388,6 +388,7 @@ class ScanLogic extends WidgetsBindingObserver {
 
   void cancelScan() {
     _nfc.stop();
+    _state.setNfcReading(false);
   }
 
   @override

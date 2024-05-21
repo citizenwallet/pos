@@ -18,6 +18,7 @@ class NfcOverlay extends StatefulWidget {
 class NfcOverlayState extends State<NfcOverlay>
     with SingleTickerProviderStateMixin {
   bool _nfcReading = false;
+  bool _renderOverlay = false;
   bool _showReader = false;
 
   late AnimationController _controller;
@@ -45,13 +46,25 @@ class NfcOverlayState extends State<NfcOverlay>
   void onNfcReadingChanged(bool value) async {
     if (value) {
       // Start reading
-      await delay(const Duration(milliseconds: 250));
+      setState(() {
+        _renderOverlay = true;
+      });
+
+      await delay(const Duration(milliseconds: 50));
       setState(() {
         _showReader = true;
       });
     } else {
       // Stop reading
-      _showReader = false;
+      setState(() {
+        _showReader = false;
+      });
+
+      await delay(const Duration(milliseconds: 200));
+
+      setState(() {
+        _renderOverlay = false;
+      });
     }
   }
 
@@ -70,7 +83,7 @@ class NfcOverlayState extends State<NfcOverlay>
     }
     _nfcReading = nfcReading;
 
-    if (!nfcReading) {
+    if (!_renderOverlay) {
       return const SizedBox();
     }
 
@@ -78,11 +91,10 @@ class NfcOverlayState extends State<NfcOverlay>
       backgroundColor: Colors.black,
       body: AnimatedOpacity(
         opacity: _showReader ? 1 : 0,
-        duration: const Duration(milliseconds: 250),
+        duration: const Duration(milliseconds: 450),
         child: Container(
           width: width,
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          color: Colors.black.withOpacity(0.5),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
