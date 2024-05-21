@@ -350,8 +350,6 @@ class ScanLogic extends WidgetsBindingObserver {
         '',
       );
 
-      print(balance);
-
       _state.setNfcAddressSuccess(address.hexEip55);
       _state.setAddressBalance(formattedBalance);
 
@@ -359,6 +357,7 @@ class ScanLogic extends WidgetsBindingObserver {
     } catch (_) {
       _state.setNfcAddressError();
       _state.setAddressBalance(null);
+      _state.setNfcReading(false);
     }
 
     return null;
