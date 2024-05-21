@@ -14,7 +14,7 @@ import 'package:scanner/utils/strings.dart';
 import 'package:scanner/widget/nfc_overlay.dart';
 import 'package:scanner/widget/qr/qr.dart';
 
-enum MenuOption { amount, withdraw, readCardBalance }
+enum MenuOption { amount, faucetTopUp, withdraw, readCardBalance }
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -247,6 +247,9 @@ class _ScanScreenState extends State<ScanScreen> {
       case MenuOption.amount:
         handleModifyAmount(context);
         break;
+      case MenuOption.faucetTopUp:
+        handleFaucetAdmin();
+        break;
       case MenuOption.withdraw:
         handleWithdraw(context);
         break;
@@ -257,7 +260,6 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   void handleCommunityPress(BuildContext context, Config config) {
-    print('community: ${config.community.name}');
     _logic.init(alias: config.community.alias);
   }
 
@@ -321,21 +323,95 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
+  void handleFaucetAdmin() async {
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+
+    final config = context.read<ScanState>().config;
+    if (config == null) {
+      return;
+    }
+
+    _logic.listenToBalance();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (modalContext) {
+        final vendorAddress = modalContext.watch<ScanState>().vendorAddress;
+        final vendorBalance = modalContext.watch<ScanState>().vendorBalance;
+
+        return Container(
+          height: height,
+          width: width,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'Faucet',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              QR(
+                data: vendorAddress ?? '0x',
+                size: width - 120,
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: handleCopy,
+                icon:
+                    _copied ? const Icon(Icons.check) : const Icon(Icons.copy),
+                label: Text(
+                  formatLongText(vendorAddress ?? '0x'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Balance: ',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$vendorBalance ${config.token.symbol}',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    _logic.stopListenToBalance();
+  }
+
   void handleCancelScan() {
     _logic.cancelScan();
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-
     final loading = context.watch<ScanState>().loading;
 
     final ready = context.watch<ScanState>().ready;
     final redeeming = context.watch<ScanState>().redeeming;
 
     final vendorAddress = context.watch<ScanState>().vendorAddress;
-    final vendorBalance = context.watch<ScanState>().vendorBalance;
     final redeemBalance = context.watch<ScanState>().redeemBalance;
     final redeemAmount = context.watch<ScanState>().redeemAmount;
 
@@ -417,6 +493,10 @@ class _ScanScreenState extends State<ScanScreen> {
                             child: Text('Modify redeem amount'),
                           ),
                           const PopupMenuItem<MenuOption>(
+                            value: MenuOption.faucetTopUp,
+                            child: Text('Faucet top-up'),
+                          ),
+                          const PopupMenuItem<MenuOption>(
                             value: MenuOption.withdraw,
                             child: Text('Withdraw'),
                           ),
@@ -457,7 +537,6 @@ class _ScanScreenState extends State<ScanScreen> {
                       ),
                     if (!loading && vendorAddress != null)
                       Expanded(
-                        flex: 2,
                         child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -470,46 +549,6 @@ class _ScanScreenState extends State<ScanScreen> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              QR(
-                                data: vendorAddress,
-                                size: width - 120,
-                              ),
-                              const SizedBox(height: 16),
-                              OutlinedButton.icon(
-                                onPressed: handleCopy,
-                                icon: _copied
-                                    ? const Icon(Icons.check)
-                                    : const Icon(Icons.copy),
-                                label: Text(
-                                  formatLongText(vendorAddress),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'Balance',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${config?.token.symbol ?? ''} $vendorBalance',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.normal,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    if (!loading && vendorAddress != null)
-                      Expanded(
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
                               Container(
                                 height: 60,
                                 padding:
@@ -543,6 +582,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
+                                    const SizedBox(height: 80),
                                   ],
                                 ScanStateType.ready => [
                                     Text(
@@ -554,6 +594,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
+                                    const SizedBox(height: 80),
                                   ],
                                 ScanStateType.notReady => [
                                     const Text(
@@ -563,6 +604,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
+                                    const SizedBox(height: 80),
                                   ],
                                 ScanStateType.readingNFC => [
                                     const Text(
@@ -572,6 +614,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
+                                    const SizedBox(height: 80),
                                   ],
                                 ScanStateType.error => [
                                     const Text(
@@ -589,6 +632,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
+                                    const SizedBox(height: 56),
                                   ],
                                 _ => [
                                     Text(

@@ -1,10 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:scanner/services/config/service.dart';
 import 'package:scanner/services/nfc/service.dart';
@@ -71,23 +68,19 @@ class ScanLogic extends WidgetsBindingObserver {
 
       _state.setVendorAddress(_web3.account.hexEip55);
 
-      listenToBalance();
-
       _state.setConfig(config);
       _state.setConfigs(await _config.getConfigs());
 
       final redeemAmount = _preferences.getRedeemAmount(config.token.address);
 
       _state.updateRedeemAmount(redeemAmount);
+      updateVendorBalance();
 
       await _preferences.setLastAlias(selectedAlias);
 
       _state.scannerReady();
       return;
-    } catch (e, s) {
-      print(e);
-      print(s);
-    }
+    } catch (_) {}
 
     _state.scannerNotReady();
   }
@@ -167,8 +160,6 @@ class ScanLogic extends WidgetsBindingObserver {
 
       resetStatusTimer?.cancel();
 
-      stopListenToBalance();
-
       final config = _state.config;
       if (config == null) {
         throw Exception('No config');
@@ -240,6 +231,7 @@ class ScanLogic extends WidgetsBindingObserver {
       }
 
       await updateRedeemBalance(address, decimals: config.token.decimals);
+      updateVendorBalance();
 
       _preferences.setRedeemed(address.hexEip55);
 
@@ -247,8 +239,6 @@ class ScanLogic extends WidgetsBindingObserver {
       resetStatusTimer = Timer(const Duration(seconds: 5), () {
         _state.updateStatus(ScanStateType.ready);
       });
-
-      listenToBalance();
 
       runningRedeemAction = '';
       return;
@@ -261,8 +251,6 @@ class ScanLogic extends WidgetsBindingObserver {
       if (e is Exception) {
         _state.setRedeemBalance('0.00');
 
-        listenToBalance();
-
         _state.setStatusError(
             ScanStateType.error, e.toString().replaceFirst('Exception: ', ''));
 
@@ -272,7 +260,6 @@ class ScanLogic extends WidgetsBindingObserver {
     }
 
     _state.setRedeemBalance('0.00');
-    listenToBalance();
 
     _state.setStatusError(
         ScanStateType.error, 'Failed to redeem. Please try again.');
@@ -375,8 +362,7 @@ class ScanLogic extends WidgetsBindingObserver {
         updateVendorBalance();
       });
     } catch (_) {
-      _balanceTimer?.cancel();
-      _balanceTimer = null;
+      stopListenToBalance();
     }
   }
 
@@ -390,13 +376,22 @@ class ScanLogic extends WidgetsBindingObserver {
     _state.setNfcReading(false);
   }
 
+  bool wasRunning = false;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.resumed:
-        listenToBalance();
+        if (wasRunning) {
+          listenToBalance();
+          wasRunning = false;
+        }
         break;
       default:
+        if (_balanceTimer != null) {
+          wasRunning = true;
+        }
+
         _balanceTimer?.cancel();
         _balanceTimer = null;
     }
