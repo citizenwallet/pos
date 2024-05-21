@@ -100,6 +100,7 @@ class NfcOverlayState extends State<NfcOverlay>
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               Expanded(
+                flex: 2,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
