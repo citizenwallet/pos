@@ -490,15 +490,15 @@ class _ScanScreenState extends State<ScanScreen> {
                             <PopupMenuEntry<MenuOption>>[
                           const PopupMenuItem<MenuOption>(
                             value: MenuOption.amount,
-                            child: Text('Modify redeem amount'),
+                            child: Text('Edit redeem amount'),
                           ),
                           const PopupMenuItem<MenuOption>(
                             value: MenuOption.faucetTopUp,
-                            child: Text('Faucet top-up'),
+                            child: Text('Top up faucet'),
                           ),
                           const PopupMenuItem<MenuOption>(
                             value: MenuOption.withdraw,
-                            child: Text('Withdraw'),
+                            child: Text('Withdraw faucet'),
                           ),
                           const PopupMenuItem<MenuOption>(
                             value: MenuOption.readCardBalance,
