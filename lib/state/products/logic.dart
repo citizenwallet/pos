@@ -76,4 +76,16 @@ class ProductsLogic {
 
     _prefs.setProducts(token, jsonEncode(products));
   }
+
+  void addToCart(String id) {
+    try {
+      _state.addToCart(id);
+    } catch (_) {}
+  }
+
+  void removeFromCart(String id) {
+    try {
+      _state.removeFromCart(id);
+    } catch (_) {}
+  }
 }

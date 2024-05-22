@@ -28,7 +28,39 @@ class ProductsState with ChangeNotifier {
   TextEditingController nameController = TextEditingController();
   TextEditingController priceController = TextEditingController();
 
-  List<Product> products = [];
+  // List<Product> products = [];
+  List<Product> products = [
+    Product(
+      id: '1',
+      name: 'Product 1 dsfhlj sdhljh',
+      price: '10.00',
+      image: 'image1.png',
+    ),
+    Product(
+      id: '2',
+      name: 'Product 2',
+      price: '20.00',
+      image: 'image2.png',
+    ),
+    Product(
+      id: '3',
+      name: 'Product 3',
+      price: '30.00',
+      image: 'image3.png',
+    ),
+    Product(
+      id: '4',
+      name: 'Product 4',
+      price: '40.00',
+      image: 'image4.png',
+    ),
+    Product(
+      id: '5',
+      name: 'Product 5',
+      price: '50.00',
+      image: 'image5.png',
+    ),
+  ];
 
   void replaceProducts(List<Product> newProducts) {
     products = newProducts;
@@ -52,6 +84,7 @@ class ProductsState with ChangeNotifier {
 
   void removeProduct(String id) {
     products.removeWhere((element) => element.id == id);
+    cart.removeWhere((element) => element == id);
     notifyListeners();
   }
 
@@ -69,5 +102,20 @@ class ProductsState with ChangeNotifier {
   void clearForm() {
     nameController.clear();
     priceController.clear();
+  }
+
+  List<String> cart = [];
+
+  void addToCart(String id) {
+    cart.add(id);
+    notifyListeners();
+  }
+
+  void removeFromCart(String id) {
+    int index = cart.indexOf(id);
+    if (index != -1) {
+      cart.removeAt(index);
+    }
+    notifyListeners();
   }
 }

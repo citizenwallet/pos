@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:scanner/services/config/config.dart';
 import 'package:scanner/state/amount/logic.dart';
+import 'package:scanner/state/amount/selectors.dart';
 import 'package:scanner/state/amount/state.dart';
 import 'package:scanner/state/scan/state.dart';
 
 class AmountTab extends StatefulWidget {
-  const AmountTab({super.key});
+  final Config config;
+
+  const AmountTab({super.key, required this.config});
 
   @override
   AmountTabState createState() => AmountTabState();
@@ -60,19 +64,11 @@ class AmountTabState extends State<AmountTab> {
 
   @override
   Widget build(BuildContext context) {
-    final config = context.select((ScanState s) => s.config);
+    final config = widget.config;
 
     final pressedKeys = context.watch<AmountState>().pressedKeys;
 
-    final amount = pressedKeys.asMap().entries.map((entry) {
-      final v = entry.value;
-      final i = entry.key;
-      if (i == pressedKeys.length - 3) {
-        return '$v.';
-      }
-
-      return v;
-    }).join('');
+    final amount = context.select(selectFormattedAmount);
 
     return Scaffold(
       appBar: AppBar(
