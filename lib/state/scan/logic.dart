@@ -16,7 +16,15 @@ import 'package:scanner/utils/random.dart';
 import 'package:web3dart/web3dart.dart';
 
 class ScanLogic extends WidgetsBindingObserver {
-  final ScanState _state;
+  static final ScanLogic _instance = ScanLogic._internal();
+
+  factory ScanLogic() {
+    return _instance;
+  }
+
+  ScanLogic._internal();
+
+  late ScanState _state;
   final NFCService _nfc = NFCService();
   final PreferencesService _preferences = PreferencesService();
 
@@ -24,9 +32,11 @@ class ScanLogic extends WidgetsBindingObserver {
 
   late Web3Service _web3;
 
-  ScanLogic(BuildContext context) : _state = context.read<ScanState>();
+  void init(BuildContext context) {
+    _state = context.read<ScanState>();
+  }
 
-  Future<void> init({String? alias}) async {
+  Future<void> load({String? alias}) async {
     try {
       _state.loadScanner();
 

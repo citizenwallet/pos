@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:scanner/router/routes.dart';
 import 'package:scanner/services/config/service.dart';
 import 'package:scanner/services/preferences/service.dart';
+import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/state.dart';
 
 void main() async {
@@ -45,11 +46,22 @@ class RootScreenState extends State<RootScreen> {
 
   final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
+  late ScanLogic _logic;
+
   @override
   void initState() {
     super.initState();
 
     router = createRouter(_rootNavigatorKey, []);
+
+    _logic = ScanLogic();
+
+    // wait for first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _logic.init(context);
+
+      _logic.load();
+    });
   }
 
   @override
@@ -87,7 +99,7 @@ class RootScreenState extends State<RootScreen> {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
       // home: const MyHomePage(title: 'Flutter Demo Home Page'),

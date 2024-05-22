@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:scanner/utils/currency.dart';
 
 class Product {
   final String id;
@@ -13,6 +12,16 @@ class Product {
     required this.price,
     required this.image,
   });
+
+  // from json
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      id: json['id'],
+      name: json['name'],
+      price: json['price'],
+      image: json['image'],
+    );
+  }
 }
 
 class ProductsState with ChangeNotifier {
@@ -20,6 +29,11 @@ class ProductsState with ChangeNotifier {
   TextEditingController priceController = TextEditingController();
 
   List<Product> products = [];
+
+  void replaceProducts(List<Product> newProducts) {
+    products = newProducts;
+    notifyListeners();
+  }
 
   void addProduct() {
     final product = Product(

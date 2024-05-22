@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:scanner/screens/pos/screen.dart';
 import 'package:scanner/screens/scan/screen.dart';
-import 'package:scanner/screens/setup/screen.dart';
 
 GoRouter createRouter(
   GlobalKey<NavigatorState> rootNavigatorKey,
@@ -15,16 +15,24 @@ GoRouter createRouter(
       observers: observers,
       routes: [
         GoRoute(
-          name: 'Setup',
-          path: '/setup',
-          parentNavigatorKey: rootNavigatorKey,
-          builder: (context, state) => const SetupScreen(),
-        ),
-        GoRoute(
-          name: 'Scan',
+          name: 'Faucet',
           path: '/',
           parentNavigatorKey: rootNavigatorKey,
-          builder: (context, state) => const ScanScreen(),
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            name: state.name,
+            child: const ScanScreen(),
+          ),
+        ),
+        GoRoute(
+          name: 'POS',
+          path: '/pos',
+          parentNavigatorKey: rootNavigatorKey,
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            name: state.name,
+            child: const POSScreen(),
+          ),
         ),
       ],
     );

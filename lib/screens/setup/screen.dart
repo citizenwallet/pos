@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:scanner/router/bottom_tabs.dart';
 import 'package:scanner/state/products/logic.dart';
 import 'package:scanner/state/products/state.dart';
+import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/utils/currency.dart';
 import 'package:scanner/utils/formatters.dart';
 
@@ -16,6 +18,7 @@ class SetupScreen extends StatefulWidget {
 
 class _SetupScreenState extends State<SetupScreen> {
   late ProductsLogic _logic;
+  final ScanLogic _scanLogic = ScanLogic();
 
   final FocusNode _amountFocusNode = FocusNode();
   final AmountFormatter _amountFormatter = AmountFormatter();
@@ -152,6 +155,9 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
                 )),
           ],
+        ),
+        bottomNavigationBar: CustomBottomAppBar(
+          logic: _scanLogic,
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import 'package:scanner/router/bottom_tabs.dart';
 import 'package:scanner/services/config/config.dart';
 import 'package:scanner/state/products/state.dart';
 import 'package:scanner/state/scan/logic.dart';
@@ -24,7 +25,7 @@ class ScanScreen extends StatefulWidget {
 }
 
 class _ScanScreenState extends State<ScanScreen> {
-  late ScanLogic _logic;
+  final ScanLogic _logic = ScanLogic();
 
   bool _copied = false;
 
@@ -32,14 +33,7 @@ class _ScanScreenState extends State<ScanScreen> {
   void initState() {
     super.initState();
 
-    _logic = ScanLogic(context);
-
     WidgetsBinding.instance.addObserver(_logic);
-
-    // wait for first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _logic.init();
-    });
   }
 
   @override
@@ -259,10 +253,6 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  void handleCommunityPress(BuildContext context, Config config) {
-    _logic.init(alias: config.community.alias);
-  }
-
   void handleReadNFC() async {
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
@@ -409,7 +399,6 @@ class _ScanScreenState extends State<ScanScreen> {
     final loading = context.watch<ScanState>().loading;
 
     final ready = context.watch<ScanState>().ready;
-    final redeeming = context.watch<ScanState>().redeeming;
 
     final vendorAddress = context.watch<ScanState>().vendorAddress;
     final redeemBalance = context.watch<ScanState>().redeemBalance;
@@ -418,7 +407,6 @@ class _ScanScreenState extends State<ScanScreen> {
     final insufficientBalance = context.watch<ScanState>().insufficientBalance;
 
     final config = context.select((ScanState s) => s.config);
-    final configs = context.select((ScanState s) => s.configs);
 
     final status = context.select((ScanState s) => s.status);
     final statusError = context.select((ScanState s) => s.statusError);
@@ -430,57 +418,6 @@ class _ScanScreenState extends State<ScanScreen> {
           Scaffold(
             appBar: !loading
                 ? AppBar(
-                    title: PopupMenuButton<Config>(
-                      onSelected: (Config item) {
-                        handleCommunityPress(context, item);
-                      },
-                      enabled: !redeeming,
-                      offset: const Offset(0, 40),
-                      itemBuilder: (BuildContext context) => configs
-                          .where((c) => c.cards != null)
-                          .map<PopupMenuEntry<Config>>(
-                            (c) => PopupMenuItem<Config>(
-                              value: c,
-                              child: Text(c.community.name),
-                            ),
-                          )
-                          .toList(),
-                      child: AnimatedOpacity(
-                        opacity: redeeming ? 0.5 : 1,
-                        duration: const Duration(milliseconds: 500),
-                        child: Container(
-                          height: 40,
-                          width: 200,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.grey,
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  config?.community.name ?? 'No selection',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                              const Icon(Icons.arrow_drop_down),
-                              const SizedBox(width: 8),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
                     actions: [
                       PopupMenuButton<MenuOption>(
                         onSelected: (MenuOption item) {
@@ -541,38 +478,6 @@ class _ScanScreenState extends State<ScanScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Faucet',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                height: 60,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 20),
-                                child: Opacity(
-                                  opacity: ready ? 1 : 0.5,
-                                  child: FilledButton(
-                                    onPressed: ready ? handleRedeem : null,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.nfc),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Redeem $redeemAmount ${config?.token.symbol ?? ''}',
-                                          style: const TextStyle(fontSize: 22),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
                               ...(switch (status) {
                                 ScanStateType.loading => [
                                     const Text(
@@ -728,6 +633,24 @@ class _ScanScreenState extends State<ScanScreen> {
                   ],
                 ),
               ),
+            ),
+            floatingActionButton: Opacity(
+              opacity: ready ? 1 : 0.5,
+              child: FloatingActionButton.extended(
+                icon: const Icon(Icons.nfc_rounded),
+                label: Text(
+                  'Redeem $redeemAmount ${config?.token.symbol ?? ''}',
+                  style: const TextStyle(fontSize: 22),
+                ),
+                foregroundColor: ready ? Colors.white : Colors.black,
+                backgroundColor: ready ? Colors.blue : Colors.grey,
+                onPressed: ready ? handleRedeem : null,
+              ),
+            ),
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerFloat,
+            bottomNavigationBar: CustomBottomAppBar(
+              logic: _logic,
             ),
           ),
           NfcOverlay(

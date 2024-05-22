@@ -62,4 +62,12 @@ class PreferencesService {
   String? getLastAlias() {
     return _preferences.getString('lastAlias');
   }
+
+  Future setProducts(String token, String products) {
+    return _preferences.setString('products-$token', products);
+  }
+
+  String? getProducts(String token) {
+    return _preferences.getString('products-$token');
+  }
 }

@@ -1,29 +1,79 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:scanner/services/preferences/service.dart';
 import 'package:scanner/state/products/state.dart';
 
 class ProductsLogic {
   final ProductsState _state;
+  final String token;
 
-  ProductsLogic(BuildContext context) : _state = context.read<ProductsState>();
+  final PreferencesService _prefs = PreferencesService();
+
+  ProductsLogic(
+    BuildContext context,
+    this.token,
+  ) : _state = context.read<ProductsState>();
+
+  Future<void> loadProducts() async {
+    try {
+      final stringProducts = _prefs.getProducts(token);
+      if (stringProducts == null) {
+        return;
+      }
+
+      final parsedProducts = jsonDecode(stringProducts);
+
+      final products = List<Product>.from(
+        parsedProducts.map((product) => Product.fromJson(product)),
+      );
+
+      _state.replaceProducts(products);
+    } catch (_) {}
+  }
 
   void addProduct() {
-    _state.addProduct();
+    try {
+      _state.addProduct();
+
+      saveProducts();
+    } catch (_) {}
   }
 
   void removeProduct(String id) {
-    _state.removeProduct(id);
+    try {
+      _state.removeProduct(id);
+
+      saveProducts();
+    } catch (_) {}
   }
 
   void updateProduct(Product product) {
-    _state.updateProduct(product);
+    try {
+      _state.updateProduct(product);
+
+      saveProducts();
+    } catch (_) {}
   }
 
   void clearProducts() {
-    _state.clearProducts();
+    try {
+      _state.clearProducts();
+
+      saveProducts();
+    } catch (_) {}
   }
 
   void clearForm() {
-    _state.clearForm();
+    try {
+      _state.clearForm();
+    } catch (_) {}
+  }
+
+  void saveProducts() {
+    final products = _state.products;
+
+    _prefs.setProducts(token, jsonEncode(products));
   }
 }
