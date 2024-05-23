@@ -7,12 +7,16 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import 'package:scanner/router/bottom_tabs.dart';
 import 'package:scanner/services/config/config.dart';
+import 'package:scanner/services/web3/utils.dart';
 import 'package:scanner/state/products/state.dart';
+import 'package:scanner/state/profile/logic.dart';
+import 'package:scanner/state/profile/state.dart';
 import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/scan/state.dart';
 import 'package:scanner/utils/currency.dart';
 import 'package:scanner/utils/strings.dart';
 import 'package:scanner/widget/nfc_overlay.dart';
+import 'package:scanner/widget/profile_chip.dart';
 import 'package:scanner/widget/qr/qr.dart';
 
 enum MenuOption { amount, faucetTopUp, withdraw, readCardBalance }
@@ -411,6 +415,8 @@ class _ScanScreenState extends State<ScanScreen> {
     final status = context.select((ScanState s) => s.status);
     final statusError = context.select((ScanState s) => s.statusError);
 
+    final profile = context.watch<ProfileState>();
+
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Stack(
@@ -487,7 +493,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
-                                    const SizedBox(height: 80),
+                                    const SizedBox(height: 156),
                                   ],
                                 ScanStateType.ready => [
                                     Text(
@@ -499,7 +505,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
-                                    const SizedBox(height: 80),
+                                    const SizedBox(height: 156),
                                   ],
                                 ScanStateType.notReady => [
                                     const Text(
@@ -509,7 +515,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
-                                    const SizedBox(height: 80),
+                                    const SizedBox(height: 156),
                                   ],
                                 ScanStateType.readingNFC => [
                                     const Text(
@@ -519,7 +525,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
-                                    const SizedBox(height: 80),
+                                    const SizedBox(height: 156),
                                   ],
                                 ScanStateType.error => [
                                     const Text(
@@ -537,7 +543,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
-                                    const SizedBox(height: 56),
+                                    const SizedBox(height: 112),
                                   ],
                                 _ => [
                                     Text(
@@ -615,6 +621,28 @@ class _ScanScreenState extends State<ScanScreen> {
                                           ),
                                         ),
                                       ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                      ),
+                                      child: ProfileChip(
+                                        name: profile.name.isEmpty
+                                            ? null
+                                            : profile.name,
+                                        username: profile.username.isEmpty
+                                            ? null
+                                            : profile.username,
+                                        image: profile.imageSmall.isEmpty
+                                            ? null
+                                            : profile.imageSmall,
+                                        address: profile.account.isEmpty
+                                            ? null
+                                            : formatHexAddress(
+                                                profile.account,
+                                              ),
+                                      ),
                                     ),
                                     const SizedBox(height: 16),
                                     Text(

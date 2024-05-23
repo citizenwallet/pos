@@ -58,8 +58,14 @@ PODS:
   - nanopb/encode (2.30909.1)
   - nfc_manager (0.0.1):
     - Flutter
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
   - PromisesObjC (2.3.1)
   - shared_preferences_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - sqflite (0.0.3):
     - Flutter
     - FlutterMacOS
 
@@ -67,7 +73,9 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/ios`)
   - nfc_manager (from `.symlinks/plugins/nfc_manager/ios`)
+  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
+  - sqflite (from `.symlinks/plugins/sqflite/darwin`)
 
 SPEC REPOS:
   trunk:
@@ -91,8 +99,12 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/mobile_scanner/ios"
   nfc_manager:
     :path: ".symlinks/plugins/nfc_manager/ios"
+  path_provider_foundation:
+    :path: ".symlinks/plugins/path_provider_foundation/darwin"
   shared_preferences_foundation:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
+  sqflite:
+    :path: ".symlinks/plugins/sqflite/darwin"
 
 SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
@@ -109,8 +121,10 @@ SPEC CHECKSUMS:
   mobile_scanner: 38dcd8a49d7d485f632b7de65e4900010187aef2
   nanopb: d4d75c12cd1316f4a64e3c6963f879ecd4b5e0d5
   nfc_manager: d7da7cb781f7744b94df5fe9dbca904ac4a0939e
+  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   PromisesObjC: c50d2056b5253dadbd6c2bea79b0674bd5a52fa4
   shared_preferences_foundation: b4c3b4cddf1c21f02770737f147a3f5da9d39695
+  sqflite: 673a0e54cc04b7d6dba8d24fb8095b31c3a99eec
 
 PODFILE CHECKSUM: 819463e6a0290f5a72f145ba7cde16e8b6ef0796
 

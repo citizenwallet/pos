@@ -10,6 +10,7 @@ import 'package:scanner/services/web3/contracts/account_factory.dart';
 import 'package:scanner/services/web3/contracts/card_manager.dart';
 import 'package:scanner/services/web3/contracts/entrypoint.dart';
 import 'package:scanner/services/web3/contracts/erc20.dart';
+import 'package:scanner/services/web3/contracts/profile.dart';
 import 'package:scanner/services/web3/gas.dart';
 import 'package:scanner/services/web3/json_rpc.dart';
 import 'package:scanner/services/web3/paymaster_data.dart';
@@ -37,9 +38,11 @@ class Web3Service {
 
   late Client _client;
   late String _url;
+  late String _ipfsUrl;
   late Web3Client _ethClient;
 
   late APIService _rpc;
+  late APIService _ipfs;
   late APIService _indexer;
   late APIService _bundlerRPC;
   late APIService _paymasterRPC;
@@ -52,11 +55,13 @@ class Web3Service {
   late AccountFactoryContract _accountFactory;
   late TokenEntryPointContract _entryPoint;
   late AccountContract _contractAccount;
+  late ProfileContract _contractProfile;
 
   late EIP1559GasPriceEstimator _gasPriceEstimator;
 
   Future<void> init(
     String rpcUrl,
+    String ipfsUrl,
     String bundlerUrl,
     String indexerUrl,
     String paymasterUrl,
@@ -65,11 +70,15 @@ class Web3Service {
     String accountFactoryAddress,
     String entryPointAddress,
     String tokenAddress,
+    String profileAddress,
   ) async {
     _url = rpcUrl;
+    _ipfsUrl = ipfsUrl;
     _ethClient = Web3Client(_url, _client);
 
     _rpc = APIService(baseURL: rpcUrl);
+    _ipfs = APIService(baseURL: ipfsUrl);
+
     _indexer = APIService(baseURL: indexerUrl);
     _bundlerRPC = APIService(baseURL: '$bundlerUrl/$paymasterAddress');
     _paymasterRPC = APIService(baseURL: '$paymasterUrl/$paymasterAddress');
@@ -137,6 +146,14 @@ class Web3Service {
     );
 
     await _contractAccount.init();
+
+    _contractProfile = ProfileContract(
+      _chainId!.toInt(),
+      _ethClient,
+      profileAddress,
+    );
+
+    await _contractProfile.init();
   }
 
   Future<Uint8List> getCardHash(String serial) async {
@@ -178,6 +195,25 @@ class Web3Service {
 
   Future<BigInt> getBalance(String addr) async {
     return _contractToken.getBalance(addr);
+  }
+
+  /// get profile data
+  Future<ProfileV1?> getProfile(String addr) async {
+    try {
+      final url = await _contractProfile.getURL(addr);
+
+      final profileData = await _ipfs.get(url: '/$url');
+
+      final profile = ProfileV1.fromJson(profileData);
+
+      profile.parseIPFSImageURLs(_ipfsUrl);
+
+      return profile;
+    } catch (exception) {
+      //
+    }
+
+    return null;
   }
 
   /// construct withdraw call data

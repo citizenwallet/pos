@@ -9,6 +9,7 @@ import 'package:scanner/services/preferences/service.dart';
 import 'package:scanner/services/web3/service.dart';
 import 'package:scanner/services/web3/transfer_data.dart';
 import 'package:scanner/services/web3/utils.dart';
+import 'package:scanner/state/profile/logic.dart';
 import 'package:scanner/state/scan/state.dart';
 import 'package:scanner/utils/currency.dart';
 import 'package:scanner/utils/qr.dart';
@@ -25,6 +26,7 @@ class ScanLogic extends WidgetsBindingObserver {
   ScanLogic._internal();
 
   late ScanState _state;
+  late ProfileLogic _profileLogic;
   final NFCService _nfc = NFCService();
   final PreferencesService _preferences = PreferencesService();
 
@@ -34,6 +36,7 @@ class ScanLogic extends WidgetsBindingObserver {
 
   void init(BuildContext context) {
     _state = context.read<ScanState>();
+    _profileLogic = ProfileLogic(context);
   }
 
   Future<void> load({String? alias}) async {
@@ -66,6 +69,7 @@ class ScanLogic extends WidgetsBindingObserver {
 
       await _web3.init(
         config.node.url,
+        config.ipfs.url,
         config.erc4337.rpcUrl,
         config.indexer.url,
         config.erc4337.paymasterRPCUrl,
@@ -74,6 +78,7 @@ class ScanLogic extends WidgetsBindingObserver {
         config.erc4337.accountFactoryAddress,
         config.erc4337.entrypointAddress,
         config.token.address,
+        config.profile.address,
       );
 
       _state.setVendorAddress(_web3.account.hexEip55);
@@ -165,6 +170,8 @@ class ScanLogic extends WidgetsBindingObserver {
 
   Future<void> redeem() async {
     try {
+      _profileLogic.resetAll();
+
       final currentRedeemAction = generateRandomId();
       runningRedeemAction = currentRedeemAction;
 
@@ -195,6 +202,8 @@ class ScanLogic extends WidgetsBindingObserver {
       final cardHash = await _web3.getCardHash(serialNumber);
 
       final address = await _web3.getCardAddress(cardHash);
+
+      _profileLogic.loadProfile(account: address.hexEip55);
 
       // final isRedeemed = _preferences.isRedeemed(address.hexEip55);
       // if (isRedeemed) {

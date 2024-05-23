@@ -50,6 +50,7 @@ dependencies:
       url: https://github.com/citizenwallet/smartcontracts.git
       ref: v0.0.106
   flutter_svg: ^2.0.10+1
+  cached_network_image: ^3.3.1
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +77,8 @@ flutter:
   assets:
     - .env
     - assets/product.png
+    - assets/logo.svg
+    - assets/icons/profile.png
     - assets/icons/contactless.svg
     - assets/icons/community.svg
     - assets/contracts/AccountFactory.json
@@ -88,6 +91,7 @@ flutter:
     - packages/smartcontracts/contracts/accounts/TokenEntryPoint.abi.json
     - packages/smartcontracts/contracts/accounts/Account.abi.json
     - packages/smartcontracts/contracts/accounts/AccountFactory.abi.json
+    - packages/smartcontracts/contracts/apps/Profile.abi.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
