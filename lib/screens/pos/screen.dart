@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scanner/router/bottom_tabs.dart';
-import 'package:scanner/screens/pos/tabs/amount.dart';
+import 'package:scanner/screens/pos/tabs/amount/amount.dart';
 import 'package:scanner/screens/pos/tabs/items.dart';
 import 'package:scanner/state/amount/selectors.dart';
+import 'package:scanner/state/products/logic.dart';
 import 'package:scanner/state/products/selectors.dart';
 import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/scan/state.dart';
@@ -23,6 +24,7 @@ class POSScreenState extends State<POSScreen>
   int _currentTab = 0;
 
   final ScanLogic _scanLogic = ScanLogic();
+  late ProductsLogic _productsLogic;
 
   @override
   void initState() {
@@ -34,6 +36,25 @@ class POSScreenState extends State<POSScreen>
     );
 
     _tabController.addListener(handleTabChange);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // make initial requests here
+      onLoad();
+    });
+  }
+
+  void onLoad() async {
+    final config = context.read<ScanState>().config;
+    if (config == null) {
+      return;
+    }
+
+    _productsLogic = ProductsLogic(
+      context,
+      config.token.address,
+    );
+
+    _productsLogic.loadProducts();
   }
 
   @override

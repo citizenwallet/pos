@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:scanner/services/config/config.dart';
 import 'package:scanner/state/products/logic.dart';
 import 'package:scanner/state/products/state.dart';
-import 'package:scanner/state/scan/state.dart';
 
 class ItemsTab extends StatefulWidget {
   final Config config;
@@ -22,6 +22,10 @@ class ItemsTabState extends State<ItemsTab> {
     super.initState();
 
     _logic = ProductsLogic(context, widget.config.token.address);
+  }
+
+  void handleManageProducts() {
+    GoRouter.of(context).push('/pos/manage');
   }
 
   void handleAddToCart(String id) {
@@ -73,7 +77,7 @@ class ItemsTabState extends State<ItemsTab> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () {},
+                  onPressed: handleManageProducts,
                   child: const Text(
                     'Manage',
                     style: TextStyle(
@@ -147,7 +151,15 @@ class ProductCard extends StatelessWidget {
                               : Colors.black12,
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text('$amount'),
+                        child: Text(
+                          '$amount',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: amount > 0
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
                       ),
                     ],
                   ),

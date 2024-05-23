@@ -22,48 +22,26 @@ class Product {
       image: json['image'],
     );
   }
+
+  // to json
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'price': price,
+      'image': image,
+    };
+  }
 }
 
 class ProductsState with ChangeNotifier {
   TextEditingController nameController = TextEditingController();
   TextEditingController priceController = TextEditingController();
 
-  // List<Product> products = [];
-  List<Product> products = [
-    Product(
-      id: '1',
-      name: 'Product 1 dsfhlj sdhljh',
-      price: '10.00',
-      image: 'image1.png',
-    ),
-    Product(
-      id: '2',
-      name: 'Product 2',
-      price: '0.10',
-      image: 'image2.png',
-    ),
-    Product(
-      id: '3',
-      name: 'Product 3',
-      price: '0.05',
-      image: 'image3.png',
-    ),
-    Product(
-      id: '4',
-      name: 'Product 4',
-      price: '40.00',
-      image: 'image4.png',
-    ),
-    Product(
-      id: '5',
-      name: 'Product 5',
-      price: '50.00',
-      image: 'image5.png',
-    ),
-  ];
+  List<Product> products = [];
 
   void replaceProducts(List<Product> newProducts) {
-    products = newProducts;
+    products = [...newProducts];
     notifyListeners();
   }
 

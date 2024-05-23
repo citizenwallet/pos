@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:scanner/screens/pos/screen.dart';
+import 'package:scanner/screens/pos/tabs/amount/manage.dart';
 import 'package:scanner/screens/scan/screen.dart';
 
 GoRouter createRouter(
@@ -34,5 +35,11 @@ GoRouter createRouter(
             child: const POSScreen(),
           ),
         ),
+        GoRoute(
+          name: "Manage Products",
+          path: '/pos/manage',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const ManageProductsScreen(),
+        )
       ],
     );
