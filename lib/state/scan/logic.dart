@@ -278,6 +278,83 @@ class ScanLogic extends WidgetsBindingObserver {
     return;
   }
 
+  Future<String> purchase(String amount) async {
+    try {
+      _state.updateStatus(ScanStateType.readingNFC);
+
+      final config = _state.config;
+      if (config == null) {
+        throw Exception('No config');
+      }
+
+      final symbol = config.token.symbol;
+      final decimals = config.token.decimals;
+
+      _state.setNfcReading(true);
+
+      final serialNumber = await _nfc.readSerialNumber(
+        message: 'Scan to purchase for $amount $symbol',
+        successMessage: 'Purchased for $amount $symbol',
+      );
+
+      _state.setNfcReading(false);
+
+      final cardHash = await _web3.getCardHash(serialNumber);
+
+      final address = await _web3.getCardAddress(cardHash);
+
+      final balance = await _web3.getBalance(address.hexEip55);
+      if (balance == BigInt.zero) {
+        throw Exception('Insufficient balance');
+      }
+
+      final bigAmount = toUnit(amount, decimals: decimals);
+      if (bigAmount > balance) {
+        final currentBalance = fromUnit(
+          balance,
+          decimals: decimals,
+        );
+        throw Exception('Cost: $amount, Balance: $currentBalance');
+      }
+
+      final withdrawCallData = _web3.withdrawCallData(
+        cardHash,
+        toUnit(amount, decimals: decimals),
+      );
+
+      _state.updateStatus(ScanStateType.redeeming);
+
+      final (_, userop) = await _web3.prepareUserop(
+          [_web3.cardManagerAddress.hexEip55], [withdrawCallData]);
+
+      final data = TransferData(
+        'Purchased for $amount',
+      );
+
+      final txHash = await _web3.submitUserop(userop, data: data);
+      if (txHash == null) {
+        throw Exception('failed to withdraw');
+      }
+
+      _state.updateStatus(ScanStateType.verifying);
+
+      await _web3.waitForTxSuccess(txHash);
+
+      _state.updateStatus(ScanStateType.ready);
+      return 'Purchase confirmed';
+    } catch (e, s) {
+      print(e);
+      print(s);
+      if (e is Exception) {
+        _state.updateStatus(ScanStateType.ready);
+        return e.toString();
+      }
+    }
+
+    _state.updateStatus(ScanStateType.ready);
+    return 'Failed to purchase';
+  }
+
   Future<bool> withdraw(String value) async {
     try {
       final (address, _) = parseQRCode(value);

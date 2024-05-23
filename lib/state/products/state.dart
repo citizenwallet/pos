@@ -39,13 +39,13 @@ class ProductsState with ChangeNotifier {
     Product(
       id: '2',
       name: 'Product 2',
-      price: '20.00',
+      price: '0.10',
       image: 'image2.png',
     ),
     Product(
       id: '3',
       name: 'Product 3',
-      price: '30.00',
+      price: '0.05',
       image: 'image3.png',
     ),
     Product(

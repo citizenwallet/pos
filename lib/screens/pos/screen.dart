@@ -7,6 +7,7 @@ import 'package:scanner/state/amount/selectors.dart';
 import 'package:scanner/state/products/selectors.dart';
 import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/scan/state.dart';
+import 'package:scanner/widget/nfc_overlay.dart';
 
 class POSScreen extends StatefulWidget {
   const POSScreen({super.key});
@@ -48,11 +49,35 @@ class POSScreenState extends State<POSScreen>
     });
   }
 
-  void handleScan() {}
+  void handleScan(BuildContext context, String amount) async {
+    final message = await _scanLogic.purchase(amount);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 18,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void handleCancelScan() {
+    _scanLogic.cancelScan();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final ready = true;
+    final ready = !(context.select((ScanState s) => s.redeeming));
+
+    final chargeText = ready ? 'Charge' : 'Charging';
 
     final config = context.select((ScanState s) => s.config);
 
@@ -67,49 +92,67 @@ class POSScreenState extends State<POSScreen>
 
     final amountDisabled = (currentTab == 0 ? cartAmount : amount) == '0.00';
 
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          // onTap: handleTabTap,
-          tabs: const [
-            Tab(text: 'Items'),
-            Tab(text: 'Amount'),
-          ],
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            toolbarHeight: 0,
+            bottom: TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'Items'),
+                Tab(text: 'Amount'),
+              ],
+            ),
+          ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              ItemsTab(
+                config: config,
+              ),
+              AmountTab(
+                config: config,
+              ),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            icon: ready
+                ? const Icon(Icons.nfc_rounded)
+                : SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white.withOpacity(0.5),
+                      strokeWidth: 2,
+                    ),
+                  ),
+            label: Text(
+              currentTab == 0
+                  ? '$chargeText $cartAmount ${config.token.symbol}'
+                  : '$chargeText $amount ${config.token.symbol}',
+              style: const TextStyle(fontSize: 22),
+            ),
+            foregroundColor: ready && !amountDisabled
+                ? Colors.white
+                : Colors.white.withOpacity(0.5),
+            backgroundColor:
+                ready && !amountDisabled ? Colors.blue : Colors.grey,
+            onPressed: ready && !amountDisabled
+                ? () =>
+                    handleScan(context, currentTab == 0 ? cartAmount : amount)
+                : null,
+          ),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
+          bottomNavigationBar: CustomBottomAppBar(
+            logic: _scanLogic,
+          ),
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          ItemsTab(
-            config: config,
-          ),
-          AmountTab(
-            config: config,
-          ),
-        ],
-      ),
-      floatingActionButton: Opacity(
-        opacity: ready && !amountDisabled ? 1 : 0.5,
-        child: FloatingActionButton.extended(
-          icon: const Icon(Icons.nfc_rounded),
-          label: Text(
-            currentTab == 0
-                ? 'Charge $cartAmount ${config.token.symbol}'
-                : 'Charge $amount ${config.token.symbol}',
-            style: const TextStyle(fontSize: 22),
-          ),
-          foregroundColor:
-              ready && !amountDisabled ? Colors.white : Colors.black,
-          backgroundColor: ready && !amountDisabled ? Colors.blue : Colors.grey,
-          onPressed: ready && !amountDisabled ? handleScan : null,
+        NfcOverlay(
+          onCancel: handleCancelScan,
         ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      bottomNavigationBar: CustomBottomAppBar(
-        logic: _scanLogic,
-      ),
+      ],
     );
   }
 }
