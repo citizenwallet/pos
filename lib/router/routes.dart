@@ -1,16 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:scanner/screens/kiosk/screen.dart';
 import 'package:scanner/screens/pos/screen.dart';
 import 'package:scanner/screens/pos/tabs/amount/manage.dart';
 import 'package:scanner/screens/scan/screen.dart';
 
 GoRouter createRouter(
   GlobalKey<NavigatorState> rootNavigatorKey,
-  List<NavigatorObserver> observers,
-) =>
+  List<NavigatorObserver> observers, {
+  String initialLocation = '/',
+}) =>
     GoRouter(
-      initialLocation: '/',
+      initialLocation: initialLocation,
       debugLogDiagnostics: kDebugMode,
       navigatorKey: rootNavigatorKey,
       observers: observers,
@@ -40,6 +42,16 @@ GoRouter createRouter(
           path: '/pos/manage',
           parentNavigatorKey: rootNavigatorKey,
           builder: (context, state) => const ManageProductsScreen(),
-        )
+        ),
+        GoRoute(
+          name: 'Kiosk',
+          path: '/kiosk',
+          parentNavigatorKey: rootNavigatorKey,
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            name: state.name,
+            child: const KioskScreen(),
+          ),
+        ),
       ],
     );

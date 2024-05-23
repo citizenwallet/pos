@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:scanner/state/app/state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PreferencesService {
@@ -69,5 +70,20 @@ class PreferencesService {
 
   String? getProducts(String token) {
     return _preferences.getString('products-$token');
+  }
+
+  Future setAppMode(AppMode mode) {
+    return _preferences.setString('app-mode', mode.name);
+  }
+
+  AppMode getAppMode() {
+    final savedMode = _preferences.getString('app-mode');
+    if (savedMode == null) {
+      return AppMode.locked;
+    }
+    return AppMode.values.firstWhere(
+      (AppMode m) => m.name == savedMode,
+      orElse: () => AppMode.locked,
+    );
   }
 }

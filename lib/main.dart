@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:scanner/router/routes.dart';
 import 'package:scanner/services/config/service.dart';
 import 'package:scanner/services/preferences/service.dart';
+import 'package:scanner/state/app/logic.dart';
+import 'package:scanner/state/app/state.dart';
 import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/state.dart';
 
@@ -52,7 +55,22 @@ class RootScreenState extends State<RootScreen> {
   void initState() {
     super.initState();
 
-    router = createRouter(_rootNavigatorKey, []);
+    final appLogic = AppLogic(context);
+
+    final mode = appLogic.initialMode;
+
+    final initialLocation = switch (mode) {
+      AppMode.faucet => '/',
+      AppMode.pos => '/pos',
+      AppMode.unlocked => '/',
+      _ => '/kiosk',
+    };
+
+    router = createRouter(
+      _rootNavigatorKey,
+      [],
+      initialLocation: initialLocation,
+    );
 
     _logic = ScanLogic();
 
@@ -73,12 +91,6 @@ class RootScreenState extends State<RootScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return MaterialApp.router(
       title: 'Terminal',
       debugShowCheckedModeBanner: false,
