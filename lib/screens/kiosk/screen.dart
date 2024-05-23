@@ -10,6 +10,7 @@ import 'package:scanner/state/profile/state.dart';
 import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/scan/state.dart';
 import 'package:scanner/utils/strings.dart';
+import 'package:scanner/widget/nfc_overlay.dart';
 import 'package:scanner/widget/profile_chip.dart';
 import 'package:scanner/widget/qr/qr.dart';
 
@@ -365,204 +366,216 @@ class _KioskScreenState extends State<KioskScreen> {
     _appLogic.changeAppMode(mode);
   }
 
+  void handleCancelScan() {
+    _scanLogic.cancelScan();
+  }
+
   @override
   Widget build(BuildContext context) {
     final mode = context.select((AppState s) => s.mode);
 
     final profile = context.watch<ProfileState>();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Kiosk",
-        ),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            children: [
-              Expanded(
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Padding(
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              "Kiosk",
+            ),
+          ),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                  ),
+                                  child: ProfileChip(
+                                    name: profile.name.isEmpty
+                                        ? 'Anonymous Kiosk'
+                                        : profile.name,
+                                    username: profile.username.isEmpty
+                                        ? null
+                                        : profile.username,
+                                    image: profile.imageSmall.isEmpty
+                                        ? null
+                                        : profile.imageSmall,
+                                    address: profile.account.isEmpty
+                                        ? null
+                                        : formatHexAddress(
+                                            profile.account,
+                                          ),
+                                    onEdit: _locked ? null : handleSetProfile,
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: 40,
+                                ),
+                                FilledButton.icon(
+                                  onPressed: handleFaucetTopUp,
+                                  icon: const Icon(Icons.download),
+                                  label: const Text(
+                                    'Top up faucet',
+                                    style: TextStyle(fontSize: 24),
+                                  ),
+                                ),
+                                FilledButton.icon(
+                                  onPressed: handleReadNFC,
+                                  icon: const Icon(Icons.nfc_rounded),
+                                  label: const Text(
+                                    'Read card balance',
+                                    style: TextStyle(fontSize: 24),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (_locked)
+                          SliverToBoxAdapter(
+                            child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
+                                vertical: 20,
                               ),
-                              child: ProfileChip(
-                                name: profile.name.isEmpty
-                                    ? 'Anonymous Kiosk'
-                                    : profile.name,
-                                username: profile.username.isEmpty
-                                    ? null
-                                    : profile.username,
-                                image: profile.imageSmall.isEmpty
-                                    ? null
-                                    : profile.imageSmall,
-                                address: profile.account.isEmpty
-                                    ? null
-                                    : formatHexAddress(
-                                        profile.account,
-                                      ),
-                                onEdit: _locked ? null : handleSetProfile,
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 40,
-                            ),
-                            FilledButton.icon(
-                              onPressed: handleFaucetTopUp,
-                              icon: const Icon(Icons.download),
-                              label: const Text(
-                                'Top up faucet',
-                                style: TextStyle(fontSize: 24),
-                              ),
-                            ),
-                            FilledButton.icon(
-                              onPressed: handleReadNFC,
-                              icon: const Icon(Icons.nfc_rounded),
-                              label: const Text(
-                                'Read card balance',
-                                style: TextStyle(fontSize: 24),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (_locked)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 20,
-                          ),
-                          child: FilledButton.icon(
-                            onPressed: handleUnlockAdminSection,
-                            icon: const Icon(Icons.lock_open),
-                            style: const ButtonStyle(
-                              backgroundColor:
-                                  WidgetStatePropertyAll(Colors.black),
-                            ),
-                            label: const Text(
-                              'Unlock Admin Controls',
-                              style: TextStyle(fontSize: 24),
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (!_locked)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 20,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              FilledButton.icon(
-                                onPressed: () => handleModifyAmount(context),
-                                icon: const Icon(Icons.edit),
+                              child: FilledButton.icon(
+                                onPressed: handleUnlockAdminSection,
+                                icon: const Icon(Icons.lock_open),
                                 style: const ButtonStyle(
                                   backgroundColor:
                                       WidgetStatePropertyAll(Colors.black),
                                 ),
                                 label: const Text(
-                                  'Edit redeem amount',
+                                  'Unlock Admin Controls',
                                   style: TextStyle(fontSize: 24),
                                 ),
                               ),
-                              FilledButton.icon(
-                                onPressed: () => handleWithdraw(context),
-                                icon: const Icon(Icons.upload),
-                                style: const ButtonStyle(
-                                  backgroundColor:
-                                      WidgetStatePropertyAll(Colors.black),
-                                ),
-                                label: const Text(
-                                  'Withdraw faucet',
-                                  style: TextStyle(fontSize: 24),
-                                ),
+                            ),
+                          ),
+                        if (!_locked)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 20,
                               ),
-                              const SizedBox(
-                                height: 60,
-                              ),
-                              const Text(
-                                'App Mode',
-                                style: TextStyle(fontSize: 24),
-                              ),
-                              const SizedBox(
-                                height: 8,
-                              ),
-                              PopupMenuButton<AppMode>(
-                                onSelected: (AppMode item) {
-                                  handleMenuItemPress(context, item);
-                                },
-                                itemBuilder: (BuildContext context) =>
-                                    AppMode.values
-                                        .map<PopupMenuEntry<AppMode>>(
-                                          (m) => PopupMenuItem<AppMode>(
-                                            value: m,
-                                            child: Text(m.label),
-                                          ),
-                                        )
-                                        .toList(),
-                                child: Container(
-                                  height: 40,
-                                  // width: 180,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.grey,
-                                      width: 1,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  FilledButton.icon(
+                                    onPressed: () =>
+                                        handleModifyAmount(context),
+                                    icon: const Icon(Icons.edit),
+                                    style: const ButtonStyle(
+                                      backgroundColor:
+                                          WidgetStatePropertyAll(Colors.black),
+                                    ),
+                                    label: const Text(
+                                      'Edit redeem amount',
+                                      style: TextStyle(fontSize: 24),
                                     ),
                                   ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          mode.label,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.normal,
-                                          ),
+                                  FilledButton.icon(
+                                    onPressed: () => handleWithdraw(context),
+                                    icon: const Icon(Icons.upload),
+                                    style: const ButtonStyle(
+                                      backgroundColor:
+                                          WidgetStatePropertyAll(Colors.black),
+                                    ),
+                                    label: const Text(
+                                      'Withdraw faucet',
+                                      style: TextStyle(fontSize: 24),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 60,
+                                  ),
+                                  const Text(
+                                    'App Mode',
+                                    style: TextStyle(fontSize: 24),
+                                  ),
+                                  const SizedBox(
+                                    height: 8,
+                                  ),
+                                  PopupMenuButton<AppMode>(
+                                    onSelected: (AppMode item) {
+                                      handleMenuItemPress(context, item);
+                                    },
+                                    itemBuilder: (BuildContext context) =>
+                                        AppMode.values
+                                            .map<PopupMenuEntry<AppMode>>(
+                                              (m) => PopupMenuItem<AppMode>(
+                                                value: m,
+                                                child: Text(m.label),
+                                              ),
+                                            )
+                                            .toList(),
+                                    child: Container(
+                                      height: 40,
+                                      // width: 180,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.grey,
+                                          width: 1,
                                         ),
                                       ),
-                                      const Icon(Icons.arrow_drop_down),
-                                      const SizedBox(width: 8),
-                                    ],
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              mode.label,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.normal,
+                                              ),
+                                            ),
+                                          ),
+                                          const Icon(Icons.arrow_drop_down),
+                                          const SizedBox(width: 8),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                  ],
-                ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
+          ),
+          bottomNavigationBar: CustomBottomAppBar(
+            logic: _scanLogic,
           ),
         ),
-      ),
-      bottomNavigationBar: CustomBottomAppBar(
-        logic: _scanLogic,
-      ),
+        NfcOverlay(
+          onCancel: handleCancelScan,
+        ),
+      ],
     );
   }
 }
