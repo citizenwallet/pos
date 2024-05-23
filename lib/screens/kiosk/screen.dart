@@ -6,6 +6,7 @@ import 'package:scanner/router/bottom_tabs.dart';
 import 'package:scanner/services/web3/utils.dart';
 import 'package:scanner/state/app/logic.dart';
 import 'package:scanner/state/app/state.dart';
+import 'package:scanner/state/profile/logic.dart';
 import 'package:scanner/state/profile/state.dart';
 import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/scan/state.dart';
@@ -24,6 +25,7 @@ class KioskScreen extends StatefulWidget {
 class _KioskScreenState extends State<KioskScreen> {
   final ScanLogic _scanLogic = ScanLogic();
   late AppLogic _appLogic;
+  late ProfileLogic _profileLogic;
 
   bool _locked = true;
   bool _copied = false;
@@ -33,6 +35,16 @@ class _KioskScreenState extends State<KioskScreen> {
     super.initState();
 
     _appLogic = AppLogic(context);
+    _profileLogic = ProfileLogic(context);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // make initial requests here
+      onLoad();
+    });
+  }
+
+  void onLoad() {
+    _profileLogic.loadProfile();
   }
 
   void handleCopy() {
