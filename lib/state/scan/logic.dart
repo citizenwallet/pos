@@ -72,6 +72,7 @@ class ScanLogic extends WidgetsBindingObserver {
         config.ipfs.url,
         config.erc4337.rpcUrl,
         config.indexer.url,
+        config.indexer.ipfsUrl,
         config.erc4337.paymasterRPCUrl,
         config.erc4337.paymasterAddress!,
         config.cards!.cardFactoryAddress,

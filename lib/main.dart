@@ -79,6 +79,8 @@ class RootScreenState extends State<RootScreen> {
       _logic.init(context);
 
       _logic.load();
+
+      appLogic.init();
     });
   }
 

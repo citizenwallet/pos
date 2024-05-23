@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
 import 'package:scanner/services/api/api.dart';
+import 'package:scanner/services/indexer/signed_request.dart';
 import 'package:scanner/services/preferences/service.dart';
 import 'package:scanner/services/web3/contracts/account.dart';
 import 'package:scanner/services/web3/contracts/account_factory.dart';
@@ -16,7 +18,9 @@ import 'package:scanner/services/web3/json_rpc.dart';
 import 'package:scanner/services/web3/paymaster_data.dart';
 import 'package:scanner/services/web3/transfer_data.dart';
 import 'package:scanner/services/web3/userop.dart';
+import 'package:scanner/services/web3/utils.dart';
 import 'package:scanner/utils/delay.dart';
+import 'package:scanner/utils/uint8.dart';
 import 'package:web3dart/crypto.dart';
 
 import 'package:web3dart/web3dart.dart';
@@ -36,6 +40,8 @@ class Web3Service {
 
   BigInt? _chainId;
 
+  final String _indexerKey = 'x';
+
   late Client _client;
   late String _url;
   late String _ipfsUrl;
@@ -44,6 +50,7 @@ class Web3Service {
   late APIService _rpc;
   late APIService _ipfs;
   late APIService _indexer;
+  late APIService _indexerIPFS;
   late APIService _bundlerRPC;
   late APIService _paymasterRPC;
 
@@ -64,6 +71,7 @@ class Web3Service {
     String ipfsUrl,
     String bundlerUrl,
     String indexerUrl,
+    String indexerIPFSUrl,
     String paymasterUrl,
     String paymasterAddress,
     String cardManagerAddress,
@@ -80,6 +88,7 @@ class Web3Service {
     _ipfs = APIService(baseURL: ipfsUrl);
 
     _indexer = APIService(baseURL: indexerUrl);
+    _indexerIPFS = APIService(baseURL: indexerIPFSUrl);
     _bundlerRPC = APIService(baseURL: '$bundlerUrl/$paymasterAddress');
     _paymasterRPC = APIService(baseURL: '$paymasterUrl/$paymasterAddress');
 
@@ -168,22 +177,23 @@ class Web3Service {
   EthereumAddress get tokenAddress => _contractToken.rcontract.address;
   EthereumAddress get entrypointAddress => _entryPoint.rcontract.address;
   EthereumAddress get cardManagerAddress => _cardManager.rcontract.address;
+  String get profileAddress => _contractProfile.addr;
 
   Future<BigInt> getNonce(String addr) async {
     return _entryPoint.getNonce(addr);
   }
 
   /// check if an account exists
-  Future<bool> accountExists(
-    String account,
-  ) async {
+  Future<bool> accountExists({
+    String? account,
+  }) async {
     try {
-      final url = '/accounts/$account/exists';
+      final url = '/accounts/${account ?? _account.hexEip55}/exists';
 
       await _indexer.get(
         url: url,
         headers: {
-          'Authorization': 'Bearer x',
+          'Authorization': 'Bearer $_indexerKey',
         },
       );
 
@@ -195,6 +205,176 @@ class Web3Service {
 
   Future<BigInt> getBalance(String addr) async {
     return _contractToken.getBalance(addr);
+  }
+
+  /// create an account
+  Future<bool> createAccount({
+    EthPrivateKey? customCredentials,
+  }) async {
+    try {
+      final exists = await accountExists();
+      if (exists) {
+        return true;
+      }
+
+      final calldata = _contractAccount.transferOwnershipCallData(
+        _credentials.address.hexEip55,
+      );
+
+      final (_, userop) = await prepareUserop(
+        [_account.hexEip55],
+        [calldata],
+      );
+
+      final txHash = await submitUserop(
+        userop,
+      );
+      if (txHash == null) {
+        throw Exception('failed to submit user op');
+      }
+
+      final success = await waitForTxSuccess(txHash);
+      if (!success) {
+        throw Exception('transaction failed');
+      }
+
+      return true;
+    } catch (_) {}
+
+    return false;
+  }
+
+  /// set profile data
+  Future<String?> setProfile(
+    ProfileRequest profile, {
+    required List<int> image,
+    required String fileType,
+  }) async {
+    try {
+      final url = '/profiles/v2/$profileAddress/${_account.hexEip55}';
+
+      final json = jsonEncode(
+        profile.toJson(),
+      );
+
+      final body = SignedRequest(convertBytesToUint8List(utf8.encode(json)));
+
+      final sig = await compute(
+          generateSignature, (jsonEncode(body.toJson()), _credentials));
+
+      final resp = await _indexerIPFS.filePut(
+        url: url,
+        file: image,
+        fileType: fileType,
+        headers: {
+          'Authorization': 'Bearer $_indexerKey',
+          'X-Signature': sig,
+          'X-Address': _account.hexEip55,
+        },
+        body: body.toJson(),
+      );
+
+      final String profileUrl = resp['object']['ipfs_url'];
+
+      final calldata = _contractProfile.setCallData(
+          _account.hexEip55, profile.username, profileUrl);
+
+      final (_, userop) = await prepareUserop([profileAddress], [calldata]);
+
+      final txHash = await submitUserop(userop);
+      if (txHash == null) {
+        throw Exception('profile update failed');
+      }
+
+      final success = await waitForTxSuccess(txHash);
+      if (!success) {
+        throw Exception('transaction failed');
+      }
+
+      return profileUrl;
+    } catch (_) {}
+
+    return null;
+  }
+
+  /// update profile data
+  Future<String?> updateProfile(ProfileV1 profile) async {
+    try {
+      final url = '/profiles/v2/$profileAddress/${_account.hexEip55}';
+
+      final json = jsonEncode(
+        profile.toJson(),
+      );
+
+      final body = SignedRequest(convertBytesToUint8List(utf8.encode(json)));
+
+      final sig = await compute(
+          generateSignature, (jsonEncode(body.toJson()), _credentials));
+
+      final resp = await _indexerIPFS.patch(
+        url: url,
+        headers: {
+          'Authorization': 'Bearer $_indexerKey',
+          'X-Signature': sig,
+          'X-Address': _account.hexEip55,
+        },
+        body: body.toJson(),
+      );
+
+      final String profileUrl = resp['object']['ipfs_url'];
+
+      final calldata = _contractProfile.setCallData(
+          _account.hexEip55, profile.username, profileUrl);
+
+      final (_, userop) = await prepareUserop([profileAddress], [calldata]);
+
+      final txHash = await submitUserop(userop);
+      if (txHash == null) {
+        throw Exception('profile update failed');
+      }
+
+      final success = await waitForTxSuccess(txHash);
+      if (!success) {
+        throw Exception('transaction failed');
+      }
+
+      return profileUrl;
+    } catch (_) {}
+
+    return null;
+  }
+
+  /// set profile data
+  Future<bool> unpinCurrentProfile() async {
+    try {
+      final url = '/profiles/v2/$profileAddress/${_account.hexEip55}';
+
+      final encoded = jsonEncode(
+        {
+          'account': _account.hexEip55,
+          'date': DateTime.now().toUtc().toIso8601String(),
+        },
+      );
+
+      final body = SignedRequest(convertStringToUint8List(encoded));
+
+      final sig = await compute(
+          generateSignature, (jsonEncode(body.toJson()), _credentials));
+
+      await _indexerIPFS.delete(
+        url: url,
+        headers: {
+          'Authorization': 'Bearer $_indexerKey',
+          'X-Signature': sig,
+          'X-Address': _account.hexEip55,
+        },
+        body: body.toJson(),
+      );
+
+      return true;
+    } catch (_) {}
+
+    return false;
   }
 
   /// get profile data
@@ -214,6 +394,55 @@ class Web3Service {
     }
 
     return null;
+  }
+
+  /// get profile data
+  Future<ProfileV1?> getProfileFromUrl(String url) async {
+    try {
+      final profileData = await _ipfs.get(url: '/$url');
+
+      final profile = ProfileV1.fromJson(profileData);
+
+      profile.parseIPFSImageURLs(_ipfsUrl);
+
+      return profile;
+    } catch (exception) {
+      //
+    }
+
+    return null;
+  }
+
+  /// get profile data by username
+  Future<ProfileV1?> getProfileByUsername(String username) async {
+    try {
+      final url = await _contractProfile.getURLFromUsername(username);
+
+      final profileData = await _ipfs.get(url: '/$url');
+
+      final profile = ProfileV1.fromJson(profileData);
+
+      profile.parseIPFSImageURLs(_ipfsUrl);
+
+      return profile;
+    } catch (exception) {
+      //
+    }
+
+    return null;
+  }
+
+  /// profileExists checks whether there is a profile for this username
+  Future<bool> profileExists(String username) async {
+    try {
+      final url = await _contractProfile.getURLFromUsername(username);
+
+      return url != '';
+    } catch (exception) {
+      //
+    }
+
+    return false;
   }
 
   /// construct withdraw call data

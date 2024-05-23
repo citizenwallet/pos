@@ -6,6 +6,7 @@ class ProfileChip extends StatelessWidget {
   final String? username;
   final String? image;
   final String? address;
+  final void Function()? onEdit;
 
   const ProfileChip({
     super.key,
@@ -13,6 +14,7 @@ class ProfileChip extends StatelessWidget {
     this.username,
     this.image,
     this.address,
+    this.onEdit,
   });
 
   @override
@@ -77,6 +79,15 @@ class ProfileChip extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 10),
+          if (onEdit != null)
+            IconButton(
+              onPressed: onEdit,
+              icon: const Icon(
+                Icons.edit,
+                color: Colors.white,
+              ),
+            )
         ],
       ),
     );

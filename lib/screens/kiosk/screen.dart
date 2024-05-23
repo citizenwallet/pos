@@ -3,11 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import 'package:scanner/router/bottom_tabs.dart';
+import 'package:scanner/services/web3/utils.dart';
 import 'package:scanner/state/app/logic.dart';
 import 'package:scanner/state/app/state.dart';
+import 'package:scanner/state/profile/state.dart';
 import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/scan/state.dart';
 import 'package:scanner/utils/strings.dart';
+import 'package:scanner/widget/profile_chip.dart';
 import 'package:scanner/widget/qr/qr.dart';
 
 class KioskScreen extends StatefulWidget {
@@ -339,6 +342,10 @@ class _KioskScreenState extends State<KioskScreen> {
     );
   }
 
+  void handleSetProfile() async {
+    GoRouter.of(context).push('/kiosk/profile');
+  }
+
   void handleUnlockAdminSection() async {
     final ok = await handleCodeVerification();
     if (!ok) {
@@ -362,6 +369,8 @@ class _KioskScreenState extends State<KioskScreen> {
   Widget build(BuildContext context) {
     final mode = context.select((AppState s) => s.mode);
 
+    final profile = context.watch<ProfileState>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -382,6 +391,31 @@ class _KioskScreenState extends State<KioskScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              child: ProfileChip(
+                                name: profile.name.isEmpty
+                                    ? 'Anonymous Kiosk'
+                                    : profile.name,
+                                username: profile.username.isEmpty
+                                    ? null
+                                    : profile.username,
+                                image: profile.imageSmall.isEmpty
+                                    ? null
+                                    : profile.imageSmall,
+                                address: profile.account.isEmpty
+                                    ? null
+                                    : formatHexAddress(
+                                        profile.account,
+                                      ),
+                                onEdit: _locked ? null : handleSetProfile,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 40,
+                            ),
                             FilledButton.icon(
                               onPressed: handleFaucetTopUp,
                               icon: const Icon(Icons.download),
@@ -435,7 +469,7 @@ class _KioskScreenState extends State<KioskScreen> {
                             children: [
                               FilledButton.icon(
                                 onPressed: () => handleModifyAmount(context),
-                                icon: const Icon(Icons.lock_open),
+                                icon: const Icon(Icons.edit),
                                 style: const ButtonStyle(
                                   backgroundColor:
                                       WidgetStatePropertyAll(Colors.black),
@@ -447,7 +481,7 @@ class _KioskScreenState extends State<KioskScreen> {
                               ),
                               FilledButton.icon(
                                 onPressed: () => handleWithdraw(context),
-                                icon: const Icon(Icons.lock_open),
+                                icon: const Icon(Icons.upload),
                                 style: const ButtonStyle(
                                   backgroundColor:
                                       WidgetStatePropertyAll(Colors.black),
