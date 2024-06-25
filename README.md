@@ -1,4 +1,4 @@
-# scanner
+# Intro
 Mobile app that serves as a Point of Sale application/Kiosk for our NFC wallets. 
 The app provides "tap to pay" and "tap to top-up" functionality for our NFC wallets.
 
