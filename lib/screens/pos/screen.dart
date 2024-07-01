@@ -70,8 +70,9 @@ class POSScreenState extends State<POSScreen>
     });
   }
 
-  void handleScan(BuildContext context, String amount) async {
-    final message = await _scanLogic.purchase(amount);
+  void handleScan(
+      BuildContext context, String amount, String description) async {
+    final message = await _scanLogic.purchase(amount, description: description);
 
     if (!context.mounted) {
       return;
@@ -108,10 +109,14 @@ class POSScreenState extends State<POSScreen>
 
     final amount = context.select(selectFormattedAmount);
     final cartAmount = context.select(selectCartAmount);
+    final cardDescription = context.select(selectCartDescription);
 
     final currentTab = _currentTab;
 
     final amountDisabled = (currentTab == 0 ? cartAmount : amount) == '0.00';
+
+    final description =
+        currentTab == 0 ? cardDescription : 'Manual amount: $amount';
 
     return Stack(
       children: [
@@ -160,8 +165,8 @@ class POSScreenState extends State<POSScreen>
             backgroundColor:
                 ready && !amountDisabled ? Colors.blue : Colors.grey,
             onPressed: ready && !amountDisabled
-                ? () =>
-                    handleScan(context, currentTab == 0 ? cartAmount : amount)
+                ? () => handleScan(
+                    context, currentTab == 0 ? cartAmount : amount, description)
                 : null,
           ),
           floatingActionButtonLocation:

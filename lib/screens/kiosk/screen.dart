@@ -216,9 +216,8 @@ class _KioskScreenState extends State<KioskScreen> {
     showModalBottomSheet<String>(
       context: context,
       builder: (modalContext) => Container(
-        height: height * 0.75,
         width: width,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -231,7 +230,7 @@ class _KioskScreenState extends State<KioskScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            QR(data: address, size: width - 80),
+            QR(data: address, size: width - 100),
             const SizedBox(height: 16),
             Text(
               'Balance: ${balance ?? '0.0'} ${config?.token.symbol ?? ''}',

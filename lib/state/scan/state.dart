@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:scanner/services/config/config.dart';
+import 'package:scanner/services/nfc/service.dart';
 
 enum ScanStateType {
   loading,
@@ -23,21 +24,30 @@ class ScanState with ChangeNotifier {
 
   String redeemAmount = '1.00';
 
+  NFCScannerDirection scannerDirection = NFCScannerDirection.top;
+
   bool get loading => status == ScanStateType.loading;
   bool get redeeming =>
       status == ScanStateType.redeeming ||
       status == ScanStateType.verifying ||
       status == ScanStateType.verified;
-  bool get insufficientBalance =>
-      (double.tryParse(vendorBalance) ?? 0.0) <
-          (double.tryParse(redeemAmount) ?? 0.0) ||
-      (double.tryParse(vendorBalance) ?? 0.0) == 0.0;
+  bool get insufficientBalance {
+    return (double.tryParse(vendorBalance.replaceAll(",", "")) ?? 0.0) <
+            (double.tryParse(redeemAmount.replaceAll(",", "")) ?? 0.0) ||
+        (double.tryParse(vendorBalance.replaceAll(",", "")) ?? 0.0) == 0.0;
+  }
+
   bool get ready =>
       (status == ScanStateType.ready ||
           status == ScanStateType.verifying ||
           status == ScanStateType.verified) &&
-      (double.tryParse(vendorBalance) ?? 0.0) >=
-          (double.tryParse(redeemAmount) ?? 0.0);
+      (double.tryParse(vendorBalance.replaceAll(",", "")) ?? 0.0) >=
+          (double.tryParse(redeemAmount.replaceAll(",", "")) ?? 0.0);
+
+  void setScannerDirection(NFCScannerDirection direction) {
+    scannerDirection = direction;
+    notifyListeners();
+  }
 
   void loadScanner() {
     status = ScanStateType.loading;

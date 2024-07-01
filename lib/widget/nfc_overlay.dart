@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
+import 'package:scanner/services/nfc/service.dart';
 import 'package:scanner/state/scan/state.dart';
 import 'package:scanner/utils/delay.dart';
 
@@ -78,6 +79,8 @@ class NfcOverlayState extends State<NfcOverlay>
 
     final nfcReading = context.watch<ScanState>().nfcReading;
 
+    final nfcDirection = context.watch<ScanState>().scannerDirection;
+
     if (_nfcReading != nfcReading) {
       onNfcReadingChanged(nfcReading);
     }
@@ -108,7 +111,7 @@ class NfcOverlayState extends State<NfcOverlay>
                     const SizedBox(
                       height: 20,
                     ),
-                    if (Platform.isAndroid)
+                    if (nfcDirection == NFCScannerDirection.right)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -135,7 +138,7 @@ class NfcOverlayState extends State<NfcOverlay>
                           ),
                         ],
                       ),
-                    if (!Platform.isAndroid)
+                    if (nfcDirection == NFCScannerDirection.top)
                       Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:scanner/services/config/service.dart';
+import 'package:scanner/services/nfc/cpay_device.dart';
+import 'package:scanner/services/nfc/default.dart';
 import 'package:scanner/services/nfc/service.dart';
 import 'package:scanner/services/preferences/service.dart';
 import 'package:scanner/services/web3/service.dart';
@@ -27,7 +29,7 @@ class ScanLogic extends WidgetsBindingObserver {
 
   late ScanState _state;
   late ProfileLogic _profileLogic;
-  final NFCService _nfc = NFCService();
+  final NFCService _nfc = CPayNFCService();
   final PreferencesService _preferences = PreferencesService();
 
   final ConfigService _config = ConfigService();
@@ -42,6 +44,8 @@ class ScanLogic extends WidgetsBindingObserver {
   Future<void> load({String? alias}) async {
     try {
       _state.loadScanner();
+
+      _state.scannerDirection = _nfc.direction;
 
       _web3 = Web3Service();
 
@@ -104,7 +108,6 @@ class ScanLogic extends WidgetsBindingObserver {
   void updateVendorBalance() async {
     try {
       final balance = await _web3.getBalance(_web3.account.hexEip55);
-
       final config = _state.config;
       if (config == null) {
         throw Exception('No config');
@@ -120,6 +123,8 @@ class ScanLogic extends WidgetsBindingObserver {
             0.0,
         '',
       );
+
+      print(formattedBalance);
 
       _state.setVendorBalance(formattedBalance);
     } catch (_) {}
@@ -169,7 +174,7 @@ class ScanLogic extends WidgetsBindingObserver {
   Timer? resetStatusTimer;
   String runningRedeemAction = '';
 
-  Future<void> redeem() async {
+  Future<void> redeem({String? description}) async {
     try {
       _profileLogic.resetAll();
 
@@ -198,11 +203,17 @@ class ScanLogic extends WidgetsBindingObserver {
         successMessage: 'Redeemed $symbol $amount',
       );
 
+      print('serialNumber: $serialNumber');
+
       _state.setNfcReading(false);
 
       final cardHash = await _web3.getCardHash(serialNumber);
 
+      print('Card hash: $cardHash');
+
       final address = await _web3.getCardAddress(cardHash);
+
+      print('Card address: ${address.hexEip55}');
 
       _profileLogic.loadProfile(account: address.hexEip55);
 
@@ -228,7 +239,7 @@ class ScanLogic extends WidgetsBindingObserver {
           await _web3.prepareUserop([_web3.tokenAddress.hexEip55], [calldata]);
 
       final data = TransferData(
-        'Withdraw balance',
+        description ?? 'Redeem',
       );
 
       final txHash = await _web3.submitUserop(userop, data: data);
@@ -288,7 +299,7 @@ class ScanLogic extends WidgetsBindingObserver {
     return;
   }
 
-  Future<String> purchase(String amount) async {
+  Future<String> purchase(String amount, {String? description}) async {
     try {
       _state.updateStatus(ScanStateType.readingNFC);
 
@@ -338,7 +349,7 @@ class ScanLogic extends WidgetsBindingObserver {
           [_web3.cardManagerAddress.hexEip55], [withdrawCallData]);
 
       final data = TransferData(
-        'Purchased for $amount',
+        description ?? 'Purchased for $amount',
       );
 
       final txHash = await _web3.submitUserop(userop, data: data);
@@ -438,7 +449,9 @@ class ScanLogic extends WidgetsBindingObserver {
       _state.setAddressBalance(formattedBalance);
 
       return address.hexEip55;
-    } catch (_) {
+    } catch (e, s) {
+      print(e);
+      print(s);
       _state.setNfcAddressError();
       _state.setAddressBalance(null);
       _state.setNfcReading(false);

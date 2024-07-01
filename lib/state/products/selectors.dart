@@ -17,3 +17,21 @@ String selectCartAmount(ProductsState state) {
     },
   ).toStringAsFixed(2);
 }
+
+String selectCartDescription(ProductsState state) {
+  final Map<String, Product> mappedProducts = {};
+
+  final products = state.products.fold(mappedProducts, (v, p) => v..[p.id] = p);
+  final cart = state.cart;
+
+  return cart.fold<String>(
+    'Cart: ',
+    (previousValue, itemId) {
+      final element = products[itemId];
+      if (element == null) {
+        return previousValue;
+      }
+      return previousValue + element.name + ' ';
+    },
+  );
+}

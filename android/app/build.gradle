@@ -80,4 +80,6 @@ flutter {
     source '../..'
 }
 
-dependencies {}
+dependencies {
+    implementation files('libs\\CpaySDKLibV4.0.9.6_20231229.jar')
+}
