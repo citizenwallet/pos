@@ -17,6 +17,8 @@ import com.pos.sdk.printer.param.QrPrintItemParam;
 import com.pos.sdk.printer.param.TextPrintItemParam;
 import com.pos.util.HexUtils;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 
 import io.flutter.plugin.common.MethodChannel;
@@ -25,7 +27,7 @@ import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.MethodCall;
 import xyz.citizenwallet.nfc.utils.SlipModelUtils;
 
-public class NFCPlugin implements MethodCallHandler  {
+public class NFCPlugin implements MethodCallHandler {
     private MifareDevice mifareDevice;
     private PrinterDevice printerDevice;
     private Context context;
@@ -66,6 +68,7 @@ public class NFCPlugin implements MethodCallHandler  {
                 } else {
                     result.error("UNAVAILABLE", "Response not available.", null);
                 }
+                break;
             case "exists":
                 result.success(exists());
             case "read":
@@ -74,8 +77,14 @@ public class NFCPlugin implements MethodCallHandler  {
                 } catch (RemoteException e) {
                     throw new RuntimeException(e);
                 }
+                break;
             case "print":
-                result.success(print());
+                String amount = call.argument("amount");
+                String symbol = call.argument("symbol");
+                String description = call.argument("description");
+                String link = call.argument("link");
+                result.success(print(amount, symbol, description, link));
+                break;
             default:
                 result.notImplemented();
         }
@@ -87,7 +96,7 @@ public class NFCPlugin implements MethodCallHandler  {
     }
 
     private boolean exists() {
-       return mifareDevice.exists();
+        return mifareDevice.exists();
     }
 
     private String read() throws RemoteException {
@@ -126,8 +135,8 @@ public class NFCPlugin implements MethodCallHandler  {
         return uid;
     }
 
-    private Object print() {
-        addTestData();
+    private Object print(String amount, String symbol, String description, String link) {
+        addTestData(amount, symbol, description, link);
 
         Bundle bundle = new Bundle();
         printerDevice.print(bundle, new IPrinterResultListener.Stub() {
@@ -139,15 +148,16 @@ public class NFCPlugin implements MethodCallHandler  {
             @Override
             public void onPrintError(int errorCode, String msg) throws RemoteException {
                 Log.d("print", msg);
-//                showErrorMessage(String.format(Locale.US, "print failed,the error code is %d,the error message is:%s", errorCode, msg));
+                // showErrorMessage(String.format(Locale.US, "print failed,the error code is
+                // %d,the error message is:%s", errorCode, msg));
             }
         });
         return null;
     }
 
-    public void addQRCode() {
+    public void addQRCode(String link) {
         QrPrintItemParam qrPrintItemParam = new QrPrintItemParam();
-        qrPrintItemParam.setQRCode("https://www.youtube.com/watch?v=xvFZjo5PgG0");
+        qrPrintItemParam.setQRCode(link);
         qrPrintItemParam.setQrWidth(200);
         qrPrintItemParam.setItemAlign(PrintItemAlign.CENTER);
         try {
@@ -168,11 +178,15 @@ public class NFCPlugin implements MethodCallHandler  {
             printerDevice.addBarCodePrintItem(barCodePrintItemParam);
         } catch (Exception e) {
             e.printStackTrace();
-//            showMessage("add barcode result exception " + e.getMessage());
+            // showMessage("add barcode result exception " + e.getMessage());
         }
     }
 
-    public void addTestData() {
+    public void addTestData(String amount, String symbol, String description, String link) {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        Date date = new Date();
+        String formattedDate = formatter.format(date);
+
         long begin = System.currentTimeMillis();
         SlipModelUtils slip = new SlipModelUtils();
         try {
@@ -180,28 +194,19 @@ public class NFCPlugin implements MethodCallHandler  {
             printerDevice.addTextPrintItem(slip.addTextOnePrint("RECEIPT", true, 32, PrintItemAlign.CENTER));
             addLineHa(slip);
             printerDevice.addTextPrintItem(slip.addTextOnePrint("MERCHANT NAME:", false, -1, PrintItemAlign.LEFT));
-            printerDevice.addTextPrintItem(slip.addTextOnePrint("NFC Wallet addTestData merchant (Hong Kong) HKG", false, -1, PrintItemAlign.LEFT));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("TRAIH：01.07.2013", "SAAT:12：30", null));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("TERMINAL NO.", "00020004", null));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("OPERATOR NO.", "01", null));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("ACQUIRER:", "25350344", null));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("ISSUER:", "90880060", null));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("CARD NO.", "6214094******0008", -1, 32, new float[]{1, 3}));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("EXP DATE:", "3010", null));
-            printerDevice.addTextPrintItem(slip.addTextOnePrint("TRANS TYPE:", false, -1, PrintItemAlign.LEFT));
-            printerDevice.addTextPrintItem(slip.addTextOnePrint("SALE", true, 36, PrintItemAlign.RIGHT));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("BATCH NO.:", "000114", null));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("VOUCHER NO.", "000060", -1, 32, new float[]{1, 1}));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("REF NO.", "200507443660", -1, 32, new float[]{1, 1}));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("TRANS TIME.", "2020/05/07 16:27:55", null));
-            printerDevice.addMultipleTextPrintItem(slip.addLeftAndRightItem("AMOUNT", "HKD 150.00", 32, 32, null));
+            printerDevice.addTextPrintItem(slip.addTextOnePrint("NFC Wallet",
+                    false, -1, PrintItemAlign.LEFT));
+            printerDevice
+                    .addMultipleTextPrintItem(slip.addLeftAndRightItem("TRANS TIME.", formattedDate, null));
+            printerDevice
+                    .addMultipleTextPrintItem(slip.addLeftAndRightItem("AMOUNT", symbol + " " + amount, 32, 32, null));
             addLineHa(slip);
             printerDevice.addTextPrintItem(slip.addTextOnePrint("SIGNATURE:", false, 16, PrintItemAlign.LEFT));
             printerDevice.addBitmapPrintItem(slip.addBitmapItem(this.context, "sign.png"));
             addLineHa(slip);
-            printerDevice.addTextPrintItem(slip.addTextOnePrint("I ACKNOWLEDGE SATISFACTORY RECEIPT OF RELATIVE GOODS/SERVICES", false, 16, PrintItemAlign.CENTER));
-            addQRCode();
-            addBarCode();
+            printerDevice.addTextPrintItem(slip.addTextOnePrint(
+                    "I ACKNOWLEDGE SATISFACTORY RECEIPT OF RELATIVE GOODS/SERVICES", false, 16, PrintItemAlign.CENTER));
+            addQRCode(link);
             printerDevice.addTextPrintItem(addLines(2));
 
             long end = System.currentTimeMillis();
@@ -211,7 +216,8 @@ public class NFCPlugin implements MethodCallHandler  {
     }
 
     private void addLineHa(SlipModelUtils slip) throws RemoteException {
-        printerDevice.addTextPrintItem(slip.addTextOnePrint("--------------------------------------", true, -1, PrintItemAlign.CENTER));
+        printerDevice.addTextPrintItem(
+                slip.addTextOnePrint("--------------------------------------", true, -1, PrintItemAlign.CENTER));
     }
 
     private TextPrintItemParam addLines(int lines) {

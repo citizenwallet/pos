@@ -124,8 +124,6 @@ class ScanLogic extends WidgetsBindingObserver {
         '',
       );
 
-      print(formattedBalance);
-
       _state.setVendorBalance(formattedBalance);
     } catch (_) {}
   }
@@ -358,6 +356,13 @@ class ScanLogic extends WidgetsBindingObserver {
       }
 
       _state.updateStatus(ScanStateType.verifying);
+
+      _nfc.printReceipt(
+        amount: amount,
+        symbol: symbol,
+        description: description,
+        link: '${config.scan.url}/tx/$txHash',
+      );
 
       await _web3.waitForTxSuccess(txHash);
 

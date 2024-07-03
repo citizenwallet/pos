@@ -10,6 +10,13 @@ class DefaultNFCService implements NFCService {
       Platform.isAndroid ? NFCScannerDirection.right : NFCScannerDirection.top;
 
   @override
+  Future<void> printReceipt(
+      {String? amount,
+      String? symbol,
+      String? description,
+      String? link}) async {}
+
+  @override
   Future<String> readSerialNumber(
       {String? message, String? successMessage}) async {
     // Check availability
