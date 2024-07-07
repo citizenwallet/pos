@@ -441,6 +441,14 @@ class _KioskScreenState extends State<KioskScreen> {
                                     'Top up faucet',
                                     style: TextStyle(fontSize: 24),
                                   ),
+                                  style: const ButtonStyle(
+                                    minimumSize: WidgetStatePropertyAll(
+                                      Size(100, 60),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: 20,
                                 ),
                                 FilledButton.icon(
                                   onPressed: handleReadNFC,
@@ -449,6 +457,14 @@ class _KioskScreenState extends State<KioskScreen> {
                                     'Read card balance',
                                     style: TextStyle(fontSize: 24),
                                   ),
+                                  style: const ButtonStyle(
+                                    minimumSize: WidgetStatePropertyAll(
+                                      Size(100, 60),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: 40,
                                 ),
                               ],
                             ),
@@ -467,6 +483,9 @@ class _KioskScreenState extends State<KioskScreen> {
                                 style: const ButtonStyle(
                                   backgroundColor:
                                       WidgetStatePropertyAll(Colors.black),
+                                  minimumSize: WidgetStatePropertyAll(
+                                    Size(100, 60),
+                                  ),
                                 ),
                                 label: const Text(
                                   'Unlock Admin Controls',
