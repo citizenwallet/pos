@@ -511,11 +511,17 @@ class _KioskScreenState extends State<KioskScreen> {
                                     style: const ButtonStyle(
                                       backgroundColor:
                                           WidgetStatePropertyAll(Colors.black),
+                                      minimumSize: WidgetStatePropertyAll(
+                                        Size(100, 60),
+                                      ),
                                     ),
                                     label: const Text(
                                       'Edit redeem amount',
                                       style: TextStyle(fontSize: 24),
                                     ),
+                                  ),
+                                  const SizedBox(
+                                    height: 20,
                                   ),
                                   FilledButton.icon(
                                     onPressed: () => handleWithdraw(context),
@@ -523,6 +529,9 @@ class _KioskScreenState extends State<KioskScreen> {
                                     style: const ButtonStyle(
                                       backgroundColor:
                                           WidgetStatePropertyAll(Colors.black),
+                                      minimumSize: WidgetStatePropertyAll(
+                                        Size(100, 60),
+                                      ),
                                     ),
                                     label: const Text(
                                       'Withdraw faucet',
