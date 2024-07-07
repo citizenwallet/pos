@@ -169,10 +169,31 @@ class ScanLogic extends WidgetsBindingObserver {
     } catch (_) {}
   }
 
+  Future<String?> readTag({
+    String message = 'Scan',
+    String successMessage = 'Scanned successfully',
+  }) async {
+    try {
+      _state.setNfcReading(true);
+
+      final serialNumber = await _nfc.readSerialNumber(
+        message: message,
+        successMessage: successMessage,
+      );
+
+      _state.setNfcReading(false);
+
+      return serialNumber;
+    } catch (_) {}
+
+    _state.setNfcReading(false);
+    return null;
+  }
+
   Timer? resetStatusTimer;
   String runningRedeemAction = '';
 
-  Future<void> redeem({String? description}) async {
+  Future<void> redeem(String serialNumber, {String? description}) async {
     try {
       _profileLogic.resetAll();
 
@@ -192,26 +213,9 @@ class ScanLogic extends WidgetsBindingObserver {
         _state.updateStatus(ScanStateType.readingNFC);
       }
 
-      final symbol = config.token.symbol;
-
-      _state.setNfcReading(true);
-
-      final serialNumber = await _nfc.readSerialNumber(
-        message: 'Scan to redeem $symbol $amount',
-        successMessage: 'Redeemed $symbol $amount',
-      );
-
-      print('serialNumber: $serialNumber');
-
-      _state.setNfcReading(false);
-
       final cardHash = await _web3.getCardHash(serialNumber);
 
-      print('Card hash: $cardHash');
-
       final address = await _web3.getCardAddress(cardHash);
-
-      print('Card address: ${address.hexEip55}');
 
       _profileLogic.loadProfile(account: address.hexEip55);
 
@@ -297,7 +301,8 @@ class ScanLogic extends WidgetsBindingObserver {
     return;
   }
 
-  Future<String> purchase(String amount, {String? description}) async {
+  Future<String> purchase(String serialNumber, String amount,
+      {String? description}) async {
     try {
       _state.updateStatus(ScanStateType.readingNFC);
 
@@ -308,15 +313,6 @@ class ScanLogic extends WidgetsBindingObserver {
 
       final symbol = config.token.symbol;
       final decimals = config.token.decimals;
-
-      _state.setNfcReading(true);
-
-      final serialNumber = await _nfc.readSerialNumber(
-        message: 'Scan to purchase for $amount $symbol',
-        successMessage: 'Purchased for $amount $symbol',
-      );
-
-      _state.setNfcReading(false);
 
       final cardHash = await _web3.getCardHash(serialNumber);
 
@@ -368,9 +364,7 @@ class ScanLogic extends WidgetsBindingObserver {
 
       _state.updateStatus(ScanStateType.ready);
       return 'Purchase confirmed';
-    } catch (e, s) {
-      print(e);
-      print(s);
+    } catch (e) {
       if (e is Exception) {
         _state.updateStatus(ScanStateType.ready);
         return e.toString();
@@ -426,8 +420,6 @@ class ScanLogic extends WidgetsBindingObserver {
         successMessage: successMessage,
       );
 
-      print('serialNumber: $serialNumber');
-
       _state.setNfcReading(false);
 
       final cardHash = await _web3.getCardHash(serialNumber);
@@ -456,9 +448,7 @@ class ScanLogic extends WidgetsBindingObserver {
       _state.setAddressBalance(formattedBalance);
 
       return address.hexEip55;
-    } catch (e, s) {
-      print(e);
-      print(s);
+    } catch (_) {
       _state.setNfcAddressError();
       _state.setAddressBalance(null);
       _state.setNfcReading(false);

@@ -712,10 +712,7 @@ class Web3Service {
   }
 
   /// makes a jsonrpc request from this wallet
-  Future<SUJSONRPCResponse> _requestBundler(
-    SUJSONRPCRequest body, {
-    bool legacy = false,
-  }) async {
+  Future<SUJSONRPCResponse> _requestBundler(SUJSONRPCRequest body) async {
     final rawResponse = await _bundlerRPC.post(
       body: body,
     );
@@ -752,11 +749,10 @@ class Web3Service {
   Future<(String?, Exception?)> _submitUserOp(
     UserOp userop,
     String eaddr, {
-    bool legacy = false,
     TransferData? data,
   }) async {
     final params = [userop.toJson(), eaddr];
-    if (!legacy && data != null) {
+    if (data != null) {
       params.add(data.toJson());
     }
 
@@ -766,7 +762,7 @@ class Web3Service {
     );
 
     try {
-      final response = await _requestBundler(body, legacy: legacy);
+      final response = await _requestBundler(body);
 
       return (response.result as String, null);
     } catch (exception) {
@@ -788,17 +784,13 @@ class Web3Service {
   Future<String?> submitUserop(
     UserOp userop, {
     EthPrivateKey? customCredentials,
-    bool legacy = false,
     TransferData? data,
   }) async {
     try {
-      bool isLegacy = legacy;
-
       // send the user op
       final (txHash, useropErr) = await _submitUserOp(
         userop,
         _entryPoint.addr,
-        legacy: isLegacy,
         data: data,
       );
       if (useropErr != null) {

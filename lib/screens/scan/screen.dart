@@ -35,7 +35,16 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   void handleRedeem(String description) async {
-    await _logic.redeem(description: description);
+    final serialNumber = await _logic.readTag();
+    if (serialNumber == null) {
+      return;
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    await _logic.redeem(serialNumber, description: description);
   }
 
   void handleCancelScan() {
@@ -287,7 +296,8 @@ class _ScanScreenState extends State<ScanScreen> {
                 ),
                 foregroundColor: ready ? Colors.white : Colors.black,
                 backgroundColor: ready ? Colors.blue : Colors.grey,
-                onPressed: ready ? () => handleRedeem(profile.description) : null,
+                onPressed:
+                    ready ? () => handleRedeem(profile.description) : null,
               ),
             ),
             floatingActionButtonLocation:

@@ -12,6 +12,7 @@ import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/scan/state.dart';
 import 'package:scanner/widget/nfc_overlay.dart';
 import 'package:scanner/widget/qr/qr.dart';
+import 'package:scanner/widget/self_close_modal.dart';
 
 class POSScreen extends StatefulWidget {
   const POSScreen({super.key});
@@ -75,10 +76,6 @@ class POSScreenState extends State<POSScreen>
 
   void handleDisplayQR(
       BuildContext context, String amount, String description) async {
-    print('Displaying QR');
-    print('Amount: $amount');
-    print('Description: $description');
-
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
 
@@ -120,7 +117,7 @@ class POSScreenState extends State<POSScreen>
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Text(
-                'Purchase',
+                'Scan to pay',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -170,7 +167,91 @@ class POSScreenState extends State<POSScreen>
 
   void handleScan(
       BuildContext context, String amount, String description) async {
-    final message = await _scanLogic.purchase(amount, description: description);
+    final width = MediaQuery.of(context).size.width;
+
+    final serialNumber = await _scanLogic.readTag();
+    if (serialNumber == null) {
+      return;
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final config = context.read<ScanState>().config;
+    if (config == null) {
+      return;
+    }
+
+    final message = await showModalBottomSheet<String>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (modalContext) => SelfCloseWidget(
+        runOnOpen: () =>
+            _scanLogic.purchase(serialNumber, amount, description: description),
+        child: Container(
+          height: 300,
+          width: width,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'Purchasing',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    '$amount ${config.token.symbol}',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              const SizedBox(
+                height: 32,
+                width: 32,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // final message = await _scanLogic.purchase(amount, description: description);
+
+    if (message == null) {
+      return;
+    }
 
     if (!context.mounted) {
       return;
@@ -244,13 +325,17 @@ class POSScreenState extends State<POSScreen>
           floatingActionButton: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton.filled(
-                iconSize: 48,
+              FloatingActionButton(
+                foregroundColor: ready && !amountDisabled
+                    ? Colors.white
+                    : Colors.white.withOpacity(0.5),
+                backgroundColor:
+                    ready && !amountDisabled ? Colors.blue : Colors.grey,
                 onPressed: ready && !amountDisabled
                     ? () => handleDisplayQR(context,
                         currentTab == 0 ? cartAmount : amount, description)
                     : null,
-                icon: ready
+                child: ready
                     ? const Icon(
                         Icons.qr_code,
                         color: Colors.white,
@@ -263,7 +348,6 @@ class POSScreenState extends State<POSScreen>
                           strokeWidth: 2,
                         ),
                       ),
-                color: ready && !amountDisabled ? Colors.blue : Colors.grey,
               ),
               const SizedBox(width: 32),
               FloatingActionButton.extended(
