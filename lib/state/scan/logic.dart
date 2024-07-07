@@ -86,7 +86,11 @@ class ScanLogic extends WidgetsBindingObserver {
         config.profile.address,
       );
 
+      _profileLogic.resetAll();
+
       _state.setVendorAddress(_web3.account.hexEip55);
+
+      _profileLogic.loadProfile(account: _web3.account.hexEip55);
 
       _state.setConfig(config);
       _state.setConfigs(await _config.getConfigs());
