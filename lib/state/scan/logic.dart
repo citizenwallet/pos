@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:scanner/services/config/service.dart';
-import 'package:scanner/services/nfc/cpay_device.dart';
 import 'package:scanner/services/nfc/default.dart';
 import 'package:scanner/services/nfc/service.dart';
 import 'package:scanner/services/preferences/service.dart';
@@ -29,7 +28,8 @@ class ScanLogic extends WidgetsBindingObserver {
 
   late ScanState _state;
   late ProfileLogic _profileLogic;
-  final NFCService _nfc = CPayNFCService();
+  // final NFCService _nfc = CPayNFCService();
+  final NFCService _nfc = DefaultNFCService();
   final PreferencesService _preferences = PreferencesService();
 
   final ConfigService _config = ConfigService();
@@ -425,6 +425,8 @@ class ScanLogic extends WidgetsBindingObserver {
         message: message,
         successMessage: successMessage,
       );
+
+      print('serialNumber: $serialNumber');
 
       _state.setNfcReading(false);
 
