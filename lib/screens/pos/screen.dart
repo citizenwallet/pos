@@ -137,7 +137,21 @@ class POSScreenState extends State<POSScreen>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    '$amount ${config.token.symbol}, $description',
+                    '$amount ${config.token.symbol}',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    description,
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.normal,
