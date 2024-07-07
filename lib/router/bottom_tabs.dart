@@ -4,17 +4,24 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:scanner/services/config/config.dart';
 import 'package:scanner/state/app/state.dart';
+import 'package:scanner/state/products/logic.dart';
 import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/scan/state.dart';
 import 'package:scanner/widget/custom_icon_button.dart';
 
 class CustomBottomAppBar extends StatelessWidget {
   final ScanLogic logic;
+  final ProductsLogic? productsLogic;
 
-  const CustomBottomAppBar({super.key, required this.logic});
+  const CustomBottomAppBar({
+    super.key,
+    required this.logic,
+    this.productsLogic,
+  });
 
-  void handleCommunityPress(BuildContext context, Config config) {
-    logic.load(alias: config.community.alias);
+  void handleCommunityPress(BuildContext context, Config config) async {
+    await logic.load(alias: config.community.alias);
+    productsLogic?.updateToken(config.token.address);
   }
 
   @override

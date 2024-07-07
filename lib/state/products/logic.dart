@@ -7,7 +7,7 @@ import 'package:scanner/state/products/state.dart';
 
 class ProductsLogic {
   final ProductsState _state;
-  final String token;
+  String token;
 
   final PreferencesService _prefs = PreferencesService();
 
@@ -16,8 +16,16 @@ class ProductsLogic {
     this.token,
   ) : _state = context.read<ProductsState>();
 
+  updateToken(String token) {
+    this.token = token;
+
+    loadProducts();
+  }
+
   Future<void> loadProducts() async {
     try {
+      _state.clearProducts();
+
       final stringProducts = _prefs.getProducts(token);
       if (stringProducts == null) {
         return;

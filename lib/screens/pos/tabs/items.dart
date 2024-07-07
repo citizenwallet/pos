@@ -24,8 +24,10 @@ class ItemsTabState extends State<ItemsTab> {
     _logic = ProductsLogic(context, widget.config.token.address);
   }
 
-  void handleManageProducts() {
-    GoRouter.of(context).push('/pos/manage');
+  void handleManageProducts() async {
+    await GoRouter.of(context).push('/pos/manage');
+
+    _logic.loadProducts();
   }
 
   void handleAddToCart(String id) {
