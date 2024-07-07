@@ -165,8 +165,8 @@ class Web3Service {
     await _contractProfile.init();
   }
 
-  Future<Uint8List> getCardHash(String serial) async {
-    return _cardManager.getCardHash(serial);
+  Future<Uint8List> getCardHash(String serial, {bool local = true}) async {
+    return _cardManager.getCardHash(serial, local: local);
   }
 
   Future<EthereumAddress> getCardAddress(Uint8List hash) async {

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:web3dart/crypto.dart';
@@ -21,8 +22,17 @@ class CardManagerContract {
     rcontract = DeployedContract(cabi, EthereumAddress.fromHex(addr));
   }
 
-  Future<Uint8List> getCardHash(String serial) async {
+  Map<String, EthereumAddress> addressCache = {};
+
+  Future<Uint8List> getCardHash(String serial, {bool local = true}) async {
     BigInt bigIntSerial = BigInt.parse(serial, radix: 16);
+
+    if (local) {
+      return keccak256EncodePacked(
+        [bigIntSerial, EthereumAddress.fromHex(addr)],
+        ['uint256', 'address'],
+      );
+    }
 
     final function = rcontract.function('getCardHash');
 
@@ -36,6 +46,11 @@ class CardManagerContract {
   }
 
   Future<EthereumAddress> getCardAddress(Uint8List hash) async {
+    final hexHash = bytesToHex(hash);
+    if (addressCache.containsKey(hexHash)) {
+      return addressCache[hexHash]!;
+    }
+
     final function = rcontract.function('getCardAddress');
 
     final result = await client.call(
@@ -44,7 +59,11 @@ class CardManagerContract {
       params: [hash],
     );
 
-    return result[0] as EthereumAddress;
+    final address = result[0] as EthereumAddress;
+
+    addressCache[hexHash] = address;
+
+    return address;
   }
 
   Future<Uint8List> createAccountInitCode(Uint8List hash) async {
@@ -74,4 +93,29 @@ class CardManagerContract {
       amount
     ]);
   }
+}
+
+Uint8List encodePacked(dynamic value, [String? type]) {
+  if (type == 'uint256') {
+    // Encode uint256
+    var bytes = Uint8List(32);
+    var byteData = ByteData.sublistView(bytes);
+    byteData.setUint64(24, value.toInt()); // setting the last 8 bytes (uint64)
+    return bytes;
+  } else if (type == 'address') {
+    // Encode address
+    return value.addressBytes;
+  } else {
+    throw Exception("Type not supported for encoding");
+  }
+}
+
+Uint8List keccak256EncodePacked(List<dynamic> values, List<String> types) {
+  assert(values.length == types.length);
+
+  BytesBuilder builder = BytesBuilder();
+  for (int i = 0; i < values.length; i++) {
+    builder.add(encodePacked(values[i], types[i]));
+  }
+  return keccak256(builder.toBytes());
 }
