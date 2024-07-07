@@ -5,7 +5,7 @@ import 'package:scanner/screens/kiosk/profile_edit.dart';
 import 'package:scanner/screens/kiosk/screen.dart';
 import 'package:scanner/screens/pos/screen.dart';
 import 'package:scanner/screens/pos/tabs/amount/manage.dart';
-import 'package:scanner/screens/scan/screen.dart';
+import 'package:scanner/screens/faucet/screen.dart';
 
 GoRouter createRouter(
   GlobalKey<NavigatorState> rootNavigatorKey,
@@ -25,7 +25,7 @@ GoRouter createRouter(
           pageBuilder: (context, state) => NoTransitionPage(
             key: state.pageKey,
             name: state.name,
-            child: const ScanScreen(),
+            child: const FaucetScreen(),
           ),
         ),
         GoRoute(

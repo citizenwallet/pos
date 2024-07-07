@@ -10,14 +10,14 @@ import 'package:scanner/widget/profile_chip.dart';
 
 enum MenuOption { amount, faucetTopUp, withdraw, readCardBalance }
 
-class ScanScreen extends StatefulWidget {
-  const ScanScreen({super.key});
+class FaucetScreen extends StatefulWidget {
+  const FaucetScreen({super.key});
 
   @override
-  State<ScanScreen> createState() => _ScanScreenState();
+  State<FaucetScreen> createState() => _FaucetScreenState();
 }
 
-class _ScanScreenState extends State<ScanScreen> {
+class _FaucetScreenState extends State<FaucetScreen> {
   final ScanLogic _logic = ScanLogic();
 
   @override
@@ -34,7 +34,7 @@ class _ScanScreenState extends State<ScanScreen> {
     super.dispose();
   }
 
-  void handleRedeem(String description) async {
+  void handleRedeem(String amount, String description) async {
     final serialNumber = await _logic.readTag();
     if (serialNumber == null) {
       return;
@@ -44,7 +44,7 @@ class _ScanScreenState extends State<ScanScreen> {
       return;
     }
 
-    await _logic.redeem(serialNumber, description: description);
+    await _logic.redeem(serialNumber, amount, description: description);
   }
 
   void handleCancelScan() {
@@ -296,8 +296,9 @@ class _ScanScreenState extends State<ScanScreen> {
                 ),
                 foregroundColor: ready ? Colors.white : Colors.black,
                 backgroundColor: ready ? Colors.blue : Colors.grey,
-                onPressed:
-                    ready ? () => handleRedeem(profile.description) : null,
+                onPressed: ready
+                    ? () => handleRedeem(redeemAmount, profile.description)
+                    : null,
               ),
             ),
             floatingActionButtonLocation:

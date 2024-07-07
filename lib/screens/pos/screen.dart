@@ -39,6 +39,11 @@ class POSScreenState extends State<POSScreen>
       vsync: this,
     );
 
+    _productsLogic = ProductsLogic(
+      context,
+      '',
+    );
+
     _tabController.addListener(handleTabChange);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -326,6 +331,7 @@ class POSScreenState extends State<POSScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               FloatingActionButton(
+                heroTag: 'qr',
                 foregroundColor: ready && !amountDisabled
                     ? Colors.white
                     : Colors.white.withOpacity(0.5),
@@ -384,6 +390,7 @@ class POSScreenState extends State<POSScreen>
               FloatingActionButtonLocation.centerFloat,
           bottomNavigationBar: CustomBottomAppBar(
             logic: _scanLogic,
+            productsLogic: _productsLogic,
           ),
         ),
         NfcOverlay(

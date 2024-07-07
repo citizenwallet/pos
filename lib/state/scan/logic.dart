@@ -197,7 +197,11 @@ class ScanLogic extends WidgetsBindingObserver {
   Timer? resetStatusTimer;
   String runningRedeemAction = '';
 
-  Future<void> redeem(String serialNumber, {String? description}) async {
+  Future<void> redeem(
+    String serialNumber,
+    String amount, {
+    String? description,
+  }) async {
     try {
       _profileLogic.resetAll();
 
@@ -211,7 +215,7 @@ class ScanLogic extends WidgetsBindingObserver {
         throw Exception('No config');
       }
 
-      final amount = _preferences.getRedeemAmount(config.token.address);
+      // final amount = _preferences.getRedeemAmount(config.token.address);
 
       if (runningRedeemAction == currentRedeemAction) {
         _state.updateStatus(ScanStateType.readingNFC);
