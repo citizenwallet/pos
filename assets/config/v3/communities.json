@@ -118,7 +118,8 @@
             "custom_domain": "wallet.regenvillage.brussels",
             "logo": "https://wallet.regenvillage.brussels/uploads/logo.svg",
             "theme": {
-                "primary": "#1cb260"
+                "primary": "#1cb260",
+                "secondary": "#01392C"
             }
         },
         "token": {
@@ -141,7 +142,7 @@
             "url": "https://ipfs.internal.citizenwallet.xyz"
         },
         "profile": {
-            "address": "0x15336a7E5042040f8B25bA1154a3C562456c9903"
+            "address": "0xBd90e5bD392e469D91EF7a1e1F3aa44571a2b5d9"
         },
         "indexer": {
             "url": "https://wallet.regenvillage.brussels/indexer",
@@ -159,6 +160,20 @@
         "cards": {
             "card_factory_address": "0xc0F9e0907C8de79fd5902b61e463dFEdc5dc8570"
         },
+        "plugins": [
+            {
+                "name": "Top Up",
+                "icon": "https://wallet.pay.brussels/uploads/logo.svg",
+                "url": "https://topup.citizenspring.earth/wallet.pay.brussels"
+            },
+            {
+                "name": "giveth",
+                "icon": "https://wallet.regenvillage.brussels/uploads/giveth.svg",
+                "projectId": 3611,
+                "fxrate": 0.92,
+                "url": "https://giveth.io/donate/regen-like-us-eth-cc-edition"
+            }
+        ],
         "version": 1
     },
     {
@@ -170,7 +185,8 @@
             "custom_domain": "wallet.pay.brussels",
             "logo": "https://wallet.pay.brussels/uploads/logo.svg",
             "theme": {
-                "primary": "#4a90e2"
+                "primary": "#1cb260",
+                "secondary": "#01392C"
             },
             "hidden": true
         },
@@ -217,6 +233,13 @@
                 "name": "Top Up",
                 "icon": "https://wallet.pay.brussels/uploads/logo.svg",
                 "url": "https://topup.citizenspring.earth/wallet.pay.brussels"
+            },
+            {
+                "name": "giveth",
+                "icon": "https://wallet.regenvillage.brussels/uploads/giveth.svg",
+                "projectId": 1871,
+                "fxrate": 0.92,
+                "url": "https://giveth.io/donate/regens-unite"
             }
         ],
         "version": 1
