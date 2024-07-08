@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:scanner/services/config/config.dart';
 import 'package:scanner/services/config/service.dart';
 import 'package:scanner/services/nfc/default.dart';
 import 'package:scanner/services/nfc/service.dart';
@@ -41,7 +42,7 @@ class ScanLogic extends WidgetsBindingObserver {
     _profileLogic = ProfileLogic(context);
   }
 
-  Future<void> load({String? alias}) async {
+  Future<Config?> load({String? alias}) async {
     try {
       _state.loadScanner();
 
@@ -103,10 +104,12 @@ class ScanLogic extends WidgetsBindingObserver {
       await _preferences.setLastAlias(selectedAlias);
 
       _state.scannerReady();
-      return;
+      return config;
     } catch (_) {}
 
     _state.scannerNotReady();
+
+    return null;
   }
 
   void updateVendorBalance() async {

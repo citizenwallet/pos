@@ -72,6 +72,14 @@ class PreferencesService {
     return _preferences.getString('products-$token');
   }
 
+  Future setRewards(String token, String rewards) {
+    return _preferences.setString('rewards-$token', rewards);
+  }
+
+  String? getRewards(String token) {
+    return _preferences.getString('rewards-$token');
+  }
+
   Future setAppMode(AppMode mode) {
     return _preferences.setString('app-mode', mode.name);
   }

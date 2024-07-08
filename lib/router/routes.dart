@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:scanner/screens/faucet/tabs/amount/manage.dart';
 import 'package:scanner/screens/kiosk/profile_edit.dart';
 import 'package:scanner/screens/kiosk/screen.dart';
 import 'package:scanner/screens/pos/screen.dart';
@@ -27,6 +28,12 @@ GoRouter createRouter(
             name: state.name,
             child: const FaucetScreen(),
           ),
+        ),
+        GoRoute(
+          name: "Manage Rewards",
+          path: '/rewards/manage',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const ManageRewardsScreen(),
         ),
         GoRoute(
           name: 'POS',

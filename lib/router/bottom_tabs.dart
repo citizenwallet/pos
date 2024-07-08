@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:scanner/services/config/config.dart';
 import 'package:scanner/state/app/state.dart';
 import 'package:scanner/state/products/logic.dart';
+import 'package:scanner/state/rewards/logic.dart';
 import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/scan/state.dart';
 import 'package:scanner/widget/custom_icon_button.dart';
@@ -12,16 +13,19 @@ import 'package:scanner/widget/custom_icon_button.dart';
 class CustomBottomAppBar extends StatelessWidget {
   final ScanLogic logic;
   final ProductsLogic? productsLogic;
+  final RewardsLogic? rewardsLogic;
 
   const CustomBottomAppBar({
     super.key,
     required this.logic,
     this.productsLogic,
+    this.rewardsLogic,
   });
 
   void handleCommunityPress(BuildContext context, Config config) async {
     await logic.load(alias: config.community.alias);
     productsLogic?.updateToken(config.token.address);
+    rewardsLogic?.updateToken(config.token.address);
   }
 
   @override

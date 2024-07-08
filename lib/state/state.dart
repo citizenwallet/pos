@@ -4,6 +4,7 @@ import 'package:scanner/state/amount/state.dart';
 import 'package:scanner/state/app/state.dart';
 import 'package:scanner/state/products/state.dart';
 import 'package:scanner/state/profile/state.dart';
+import 'package:scanner/state/rewards/state.dart';
 import 'package:scanner/state/scan/state.dart';
 
 Widget provideAppState(Widget child) => MultiProvider(
@@ -13,6 +14,9 @@ Widget provideAppState(Widget child) => MultiProvider(
         ),
         ChangeNotifierProvider(
           create: (_) => ProductsState(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => RewardsState(),
         ),
         ChangeNotifierProvider(
           create: (_) => ScanState(),

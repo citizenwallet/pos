@@ -7,6 +7,8 @@ import 'package:scanner/services/config/service.dart';
 import 'package:scanner/services/preferences/service.dart';
 import 'package:scanner/state/app/logic.dart';
 import 'package:scanner/state/app/state.dart';
+import 'package:scanner/state/products/logic.dart';
+import 'package:scanner/state/rewards/logic.dart';
 import 'package:scanner/state/scan/logic.dart';
 import 'package:scanner/state/state.dart';
 
@@ -50,6 +52,8 @@ class RootScreenState extends State<RootScreen> {
   final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
   late ScanLogic _logic;
+  late ProductsLogic _productsLogic;
+  late RewardsLogic _rewardsLogic;
 
   @override
   void initState() {
@@ -73,15 +77,42 @@ class RootScreenState extends State<RootScreen> {
     );
 
     _logic = ScanLogic();
+    _productsLogic = ProductsLogic(context, '');
+    _rewardsLogic = RewardsLogic(context, '');
 
     // wait for first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _logic.init(context);
-
-      _logic.load();
+      onLoad();
 
       appLogic.init();
     });
+  }
+
+  void onLoad() async {
+    _logic.init(context);
+
+    final config = await _logic.load();
+    if (config == null) {
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    _productsLogic = ProductsLogic(
+      context,
+      config.token.address,
+    );
+
+    _productsLogic.loadProducts();
+
+    _rewardsLogic = RewardsLogic(
+      context,
+      config.token.address,
+    );
+
+    _rewardsLogic.loadRewards();
   }
 
   @override

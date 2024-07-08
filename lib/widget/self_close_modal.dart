@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 class SelfCloseWidget extends StatefulWidget {
   final Widget child;
-  final Future<String> Function() runOnOpen;
+  final Future<dynamic> Function() runOnOpen;
 
   const SelfCloseWidget({
     super.key,
