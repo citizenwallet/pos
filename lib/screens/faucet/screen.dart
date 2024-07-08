@@ -331,8 +331,6 @@ class _FaucetScreenState extends State<FaucetScreen>
   Widget build(BuildContext context) {
     final ready = context.watch<ScanState>().ready;
 
-    final redeemAmount = context.watch<ScanState>().redeemAmount;
-
     final config = context.select((ScanState s) => s.config);
 
     if (config == null) {
@@ -603,7 +601,8 @@ class _FaucetScreenState extends State<FaucetScreen>
                 backgroundColor:
                     ready && !amountDisabled ? Colors.blue : Colors.grey,
                 onPressed: ready
-                    ? () => handleRedeem(redeemAmount, description)
+                    ? () => handleRedeem(
+                        currentTab == 0 ? cartAmount : amount, description)
                     : null,
               ),
             ),
