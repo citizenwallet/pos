@@ -63,36 +63,37 @@ class ScanLogic extends WidgetsBindingObserver {
       }
 
       final config = await _config.getConfig(selectedAlias);
+      if (config.token.standard == "erc20") {
+        if (config.cards == null) {
+          throw Exception('No cards');
+        }
 
-      if (config.cards == null) {
-        throw Exception('No cards');
+        if (config.erc4337?.paymasterAddress == null) {
+          throw Exception('No paymaster');
+        }
+
+        await _web3.init(
+          config.token.standard,
+          config.node?.url,
+          config.ipfs?.url,
+          config.erc4337?.rpcUrl,
+          config.indexer?.url,
+          config.indexer?.ipfsUrl,
+          config.erc4337?.paymasterRPCUrl,
+          config.erc4337?.paymasterAddress!,
+          config.cards?.cardFactoryAddress,
+          config.erc4337?.accountFactoryAddress,
+          config.erc4337?.entrypointAddress,
+          config.token.address,
+          config.profile?.address,
+        );
+
+        _profileLogic.resetAll();
+
+        _state.setVendorAddress(_web3.account.hexEip55);
+
+        _profileLogic.loadProfile(account: _web3.account.hexEip55);
       }
-
-      if (config.erc4337.paymasterAddress == null) {
-        throw Exception('No paymaster');
-      }
-
-      await _web3.init(
-        config.node.url,
-        config.ipfs.url,
-        config.erc4337.rpcUrl,
-        config.indexer.url,
-        config.indexer.ipfsUrl,
-        config.erc4337.paymasterRPCUrl,
-        config.erc4337.paymasterAddress!,
-        config.cards!.cardFactoryAddress,
-        config.erc4337.accountFactoryAddress,
-        config.erc4337.entrypointAddress,
-        config.token.address,
-        config.profile.address,
-      );
-
-      _profileLogic.resetAll();
-
-      _state.setVendorAddress(_web3.account.hexEip55);
-
-      _profileLogic.loadProfile(account: _web3.account.hexEip55);
-
       _state.setConfig(config);
       _state.setConfigs(await _config.getConfigs());
 
@@ -368,7 +369,7 @@ class ScanLogic extends WidgetsBindingObserver {
         amount: amount,
         symbol: symbol,
         description: description,
-        link: '${config.scan.url}/tx/$txHash',
+        link: '${config.scan!.url}/tx/$txHash',
       );
 
       await _web3.waitForTxSuccess(txHash);

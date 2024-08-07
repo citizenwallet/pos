@@ -89,85 +89,87 @@ class POSScreenState extends State<POSScreen>
       return;
     }
 
-    final deepLinkUrl = dotenv.env['WALLET_DEEPLINK_URL'];
-    if (deepLinkUrl == null) {
-      return;
-    }
+    if (config.token.standard == "erc20") {
+      final deepLinkUrl = dotenv.env['WALLET_DEEPLINK_URL'];
+      if (deepLinkUrl == null) {
+        return;
+      }
 
-    _scanLogic.listenToBalance();
+      _scanLogic.listenToBalance();
 
-    await showModalBottomSheet<void>(
-      context: context,
-      builder: (modalContext) {
-        final vendorAddress = modalContext.watch<ScanState>().vendorAddress;
-        final vendorBalance = modalContext.watch<ScanState>().vendorBalance;
+      await showModalBottomSheet<void>(
+        context: context,
+        builder: (modalContext) {
+          final vendorAddress = modalContext.watch<ScanState>().vendorAddress;
+          final vendorBalance = modalContext.watch<ScanState>().vendorBalance;
 
-        String params =
-            '?address=$vendorAddress&alias=${config.community.alias}';
+          String params =
+              '?address=$vendorAddress&alias=${config.community.alias}';
 
-        params += '&amount=$amount';
-        params += '&message=$description';
+          params += '&amount=$amount';
+          params += '&message=$description';
 
-        final compressedParams = compress(params);
+          final compressedParams = compress(params);
 
-        final deepLink =
-            '$deepLinkUrl/#/?alias=${config.community.alias}&receiveParams=$compressedParams';
+          final deepLink =
+              '$deepLinkUrl/#/?alias=${config.community.alias}&receiveParams=$compressedParams';
 
-        return Container(
-          height: height,
-          width: width,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text(
-                'Scan to pay',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+          return Container(
+            height: height,
+            width: width,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'Scan to pay',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              QR(
-                data: deepLink,
-                size: width - 120,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    '$amount ${config.token.symbol}',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.normal,
+                const SizedBox(height: 16),
+                QR(
+                  data: deepLink,
+                  size: width - 120,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$amount ${config.token.symbol}',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.normal,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.normal,
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.normal,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      );
 
-    _scanLogic.stopListenToBalance();
+      _scanLogic.stopListenToBalance();
+    }
   }
 
   void handleScan(

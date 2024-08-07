@@ -83,7 +83,8 @@ class CustomBottomAppBar extends StatelessWidget {
                 enabled: !redeeming,
                 offset: const Offset(0, 40),
                 itemBuilder: (BuildContext context) => configs
-                    .where((c) => c.cards != null)
+                    .where((c) => c.cards != null
+                                  || c.token.standard == "eosio")
                     .map<PopupMenuEntry<Config>>(
                       (c) => PopupMenuItem<Config>(
                         value: c,
