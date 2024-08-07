@@ -81,6 +81,7 @@ class Web3Service {
     String? entryPointAddress,
     String? tokenAddress,
     String? profileAddress,
+    [String? invoiceUrl]
   ) async {
     _tokenStandard = tokenStandard;
     if (_tokenStandard == "erc20") {
@@ -167,7 +168,9 @@ class Web3Service {
       );
 
       await _contractProfile!.init();
-    } // _tokenStandard erc20
+    } else if (_tokenStandard == "eosio") {
+      // TODO make API wrapper for invoiceUrl
+    }
   }
   Future<Uint8List> getCardHash(String serial, {bool local = true}) async {
     return _cardManager!.getCardHash(serial, local: local);
@@ -806,4 +809,5 @@ class Web3Service {
       rethrow;
     }
   }
+
 }

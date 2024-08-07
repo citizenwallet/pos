@@ -1384,7 +1384,8 @@
       "name": "Telos zero"
     },
     "node": {
-      "url": "https://mainnet.telos.net"
+      "url": "https://mainnet.telos.net",
+      "invoice_url": "https://cc42.xyz/invoice"
     },
     "version": 1
   }  

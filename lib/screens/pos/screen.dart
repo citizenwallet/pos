@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:scanner/router/bottom_tabs.dart';
 import 'package:scanner/screens/pos/tabs/amount/amount.dart';
@@ -169,6 +171,95 @@ class POSScreenState extends State<POSScreen>
       );
 
       _scanLogic.stopListenToBalance();
+    } else if (config.token.standard == "eosio"){
+          // TODO get legit vendor address (12 character eosio account name)
+          final vendorAddress = "vendor";
+
+          // TODO refactor API call - maybe in web3Service
+          String invoiceQuery =
+           '?to=$vendorAddress&quantity=$amount&memo=$description&tokenContract=${config.token.address}'+
+           '&tokenSymbol=${config.token.symbol}&digitsPrecision=${config.token.decimals}';
+          Map<String, String>? headers;
+          final mergedHeaders = <String, String>{
+            'Accept': 'application/json',
+            'Content-Type': 'application/json; charset=UTF-8',
+          };
+          if (headers != null) {
+            mergedHeaders.addAll(headers);
+          }
+          final gg = Uri.parse('${config.node!.invoiceUrl}$invoiceQuery');
+
+          final response = await http
+              .get(
+                Uri.parse('${config.node!.invoiceUrl}$invoiceQuery'),
+                headers: mergedHeaders,
+              )
+              .timeout(const Duration(seconds: 10));
+
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            throw Exception('[${response.statusCode}] ${response.reasonPhrase}');
+          }
+
+          String esrData = jsonDecode(utf8.decode(response.bodyBytes))['esr'];
+
+        await showModalBottomSheet<void>(
+        context: context,
+        builder: (modalContext) {
+
+  
+          return Container(
+            height: height,
+            width: width,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'Scan to pay',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                QR(
+                  data: esrData,
+                  size: width - 120,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$amount ${config.token.symbol}',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      );
     }
   }
 

@@ -185,11 +185,13 @@ class NodeConfig {
   final int chainId;
   final String url;
   final String wsUrl;
+  String? invoiceUrl;
 
   NodeConfig({
     required this.chainId,
     required this.url,
     required this.wsUrl,
+    this.invoiceUrl
   });
 
   factory NodeConfig.fromJson(Map<String, dynamic> json) {
@@ -197,6 +199,7 @@ class NodeConfig {
       chainId: json['chain_id'] ?? 1,
       url: json['url'],
       wsUrl: json['ws_url'] ?? "",
+      invoiceUrl: json['invoice_url']
     );
   }
 
@@ -206,13 +209,14 @@ class NodeConfig {
       'chain_id': chainId,
       'url': url,
       'ws_url': wsUrl,
+      'invoice_url': invoiceUrl
     };
   }
 
   // to string
   @override
   String toString() {
-    return 'NodeConfig{chainId: $chainId url: $url, wsUrl: $wsUrl}';
+    return 'NodeConfig{chainId: $chainId url: $url, wsUrl: $wsUrl, invoiceUrl: $invoiceUrl}';
   }
 }
 
