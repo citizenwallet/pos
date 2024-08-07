@@ -2,6 +2,7 @@
 Mobile app that serves as a Point of Sale application/Kiosk for our NFC wallets. 
 The app provides "tap to pay" and "tap to top-up" functionality for our NFC wallets.
 
+https://citizenwallet.notion.site/Kiosk-manual-1d5b408be10b446b90ed5e53978dd02e
 
 ## Getting Started
 
@@ -15,3 +16,4 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+

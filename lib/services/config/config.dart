@@ -185,18 +185,21 @@ class NodeConfig {
   final int chainId;
   final String url;
   final String wsUrl;
+  String? invoiceUrl;
 
   NodeConfig({
     required this.chainId,
     required this.url,
     required this.wsUrl,
+    this.invoiceUrl
   });
 
   factory NodeConfig.fromJson(Map<String, dynamic> json) {
     return NodeConfig(
       chainId: json['chain_id'] ?? 1,
       url: json['url'],
-      wsUrl: json['ws_url'],
+      wsUrl: json['ws_url'] ?? "",
+      invoiceUrl: json['invoice_url']
     );
   }
 
@@ -206,13 +209,14 @@ class NodeConfig {
       'chain_id': chainId,
       'url': url,
       'ws_url': wsUrl,
+      'invoice_url': invoiceUrl
     };
   }
 
   // to string
   @override
   String toString() {
-    return 'NodeConfig{chainId: $chainId url: $url, wsUrl: $wsUrl}';
+    return 'NodeConfig{chainId: $chainId url: $url, wsUrl: $wsUrl, invoiceUrl: $invoiceUrl}';
   }
 }
 
@@ -453,26 +457,26 @@ class Legacy4337Bundlers {
 
 class Config {
   final CommunityConfig community;
-  final ScanConfig scan;
-  final IndexerConfig indexer;
-  final IPFSConfig ipfs;
-  final NodeConfig node;
-  final ERC4337Config erc4337;
+  final ScanConfig? scan;
+  final IndexerConfig? indexer;
+  final IPFSConfig? ipfs;
+  final NodeConfig? node;
+  final ERC4337Config? erc4337;
   final TokenConfig token;
-  final ProfileConfig profile;
+  final ProfileConfig? profile;
   final CardsConfig? cards;
   final List<PluginConfig> plugins;
   final int version;
 
   Config({
     required this.community,
-    required this.scan,
-    required this.indexer,
-    required this.ipfs,
-    required this.node,
-    required this.erc4337,
+    this.scan,
+    this.indexer,
+    this.ipfs,
+    this.node,
+    this.erc4337,
     required this.token,
-    required this.profile,
+    this.profile,
     this.cards,
     required this.plugins,
     this.version = 0,
@@ -481,13 +485,13 @@ class Config {
   factory Config.fromJson(Map<String, dynamic> json) {
     return Config(
       community: CommunityConfig.fromJson(json['community']),
-      scan: ScanConfig.fromJson(json['scan']),
-      indexer: IndexerConfig.fromJson(json['indexer']),
-      ipfs: IPFSConfig.fromJson(json['ipfs']),
-      node: NodeConfig.fromJson(json['node']),
-      erc4337: ERC4337Config.fromJson(json['erc4337']),
+      scan: json['scan'] != null ? ScanConfig.fromJson(json['scan']) : null,
+      indexer: json['indexer'] != null ? IndexerConfig.fromJson(json['indexer']) : null,
+      ipfs: json['ipfs'] != null ? IPFSConfig.fromJson(json['ipfs']) : null,
+      node: json['node'] != null ? NodeConfig.fromJson(json['node']) : null,
+      erc4337: json['erc4337'] != null ? ERC4337Config.fromJson(json['erc4337']) : null,
       token: TokenConfig.fromJson(json['token']),
-      profile: ProfileConfig.fromJson(json['profile']),
+      profile: json['profile'] != null ? ProfileConfig.fromJson(json['profile']) : null,
       cards: json['cards'] != null ? CardsConfig.fromJson(json['cards']) : null,
       plugins: json['plugins'] != null
           ? (json['plugins'] as List)

@@ -1359,5 +1359,34 @@
       }
     ],
     "version": 1
-  }
+  },
+  {
+    "community": {
+      "name": "SEEDS",
+      "description": "This is a community for Chuck",
+      "url": "https://joinseeds.earth",
+      "alias": "chuck.citizenwallet.xyz",
+      "custom_domain": "",
+      "logo": "https://raw.githubusercontent.com/JoinSEEDS/seeds_light_wallet/master/assets/images/seeds_logo.svg",
+      "theme": {
+        "primary": "#00c800"
+      }
+    },
+    "token": {
+      "standard": "eosio",
+      "name": "Seeds",
+      "address": "token.seeds",
+      "symbol": "SEEDS",
+      "decimals": 4
+    },
+    "scan": {
+      "url": "https://explorer.telos.net/network",
+      "name": "Telos zero"
+    },
+    "node": {
+      "url": "https://mainnet.telos.net",
+      "invoice_url": "https://cc42.xyz/invoice"
+    },
+    "version": 1
+  }  
 ]

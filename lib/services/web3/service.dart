@@ -41,146 +41,153 @@ class Web3Service {
   BigInt? _chainId;
 
   final String _indexerKey = 'x';
+  late String _tokenStandard;
 
   late Client _client;
   late String _url;
   late String _ipfsUrl;
   late Web3Client _ethClient;
 
-  late APIService _rpc;
-  late APIService _ipfs;
-  late APIService _indexer;
-  late APIService _indexerIPFS;
-  late APIService _bundlerRPC;
-  late APIService _paymasterRPC;
+  APIService? _rpc;
+  APIService? _ipfs;
+  APIService? _indexer;
+  APIService? _indexerIPFS;
+  APIService? _bundlerRPC;
+  APIService? _paymasterRPC;
 
-  late EthereumAddress _account;
-  late EthPrivateKey _credentials;
+  EthereumAddress? _account;
+  EthPrivateKey? _credentials;
 
-  late ERC20Contract _contractToken;
-  late CardManagerContract _cardManager;
-  late AccountFactoryContract _accountFactory;
-  late TokenEntryPointContract _entryPoint;
-  late AccountContract _contractAccount;
-  late ProfileContract _contractProfile;
+  ERC20Contract? _contractToken;
+  CardManagerContract? _cardManager;
+  AccountFactoryContract? _accountFactory;
+  TokenEntryPointContract? _entryPoint;
+  AccountContract? _contractAccount;
+  ProfileContract? _contractProfile;
 
-  late EIP1559GasPriceEstimator _gasPriceEstimator;
+  EIP1559GasPriceEstimator? _gasPriceEstimator;
 
   Future<void> init(
-    String rpcUrl,
-    String ipfsUrl,
-    String bundlerUrl,
-    String indexerUrl,
-    String indexerIPFSUrl,
-    String paymasterUrl,
-    String paymasterAddress,
-    String cardManagerAddress,
-    String accountFactoryAddress,
-    String entryPointAddress,
-    String tokenAddress,
-    String profileAddress,
+    String tokenStandard,
+    String? rpcUrl,
+    String? ipfsUrl,
+    String? bundlerUrl,
+    String? indexerUrl,
+    String? indexerIPFSUrl,
+    String? paymasterUrl,
+    String? paymasterAddress,
+    String? cardManagerAddress,
+    String? accountFactoryAddress,
+    String? entryPointAddress,
+    String? tokenAddress,
+    String? profileAddress,
+    [String? invoiceUrl]
   ) async {
-    _url = rpcUrl;
-    _ipfsUrl = ipfsUrl;
-    _ethClient = Web3Client(_url, _client);
+    _tokenStandard = tokenStandard;
+    if (_tokenStandard == "erc20") {
+      _url = rpcUrl!;
+      _ethClient = Web3Client(_url, _client);
+      _rpc = APIService(baseURL: _url);
+      if (ipfsUrl != null) {
+        _ipfsUrl = ipfsUrl;
+        _ipfs = APIService(baseURL: ipfsUrl);        
+      }
+      _indexer = indexerUrl != null ? APIService(baseURL: indexerUrl) : null;
+      _indexerIPFS = APIService(baseURL: indexerIPFSUrl!);
+      _bundlerRPC = APIService(baseURL: '$bundlerUrl/$paymasterAddress');
+      _paymasterRPC = APIService(baseURL: '$paymasterUrl/$paymasterAddress');
 
-    _rpc = APIService(baseURL: rpcUrl);
-    _ipfs = APIService(baseURL: ipfsUrl);
+      _gasPriceEstimator = EIP1559GasPriceEstimator(
+        _rpc!,
+        _ethClient,
+      );
 
-    _indexer = APIService(baseURL: indexerUrl);
-    _indexerIPFS = APIService(baseURL: indexerIPFSUrl);
-    _bundlerRPC = APIService(baseURL: '$bundlerUrl/$paymasterAddress');
-    _paymasterRPC = APIService(baseURL: '$paymasterUrl/$paymasterAddress');
+      _chainId = await _ethClient.getChainId();
 
-    _gasPriceEstimator = EIP1559GasPriceEstimator(
-      _rpc,
-      _ethClient,
-    );
+      if (_chainId == null) {
+        throw Exception('Could not get chain id');
+      }
 
-    _chainId = await _ethClient.getChainId();
+      final key = _prefs.key;
+      if (key == null) {
+        final credentials = EthPrivateKey.createRandom(Random.secure());
 
-    if (_chainId == null) {
-      throw Exception('Could not get chain id');
+        await _prefs.setKey(bytesToHex(credentials.privateKey));
+
+        _credentials = credentials;
+      } else {
+        _credentials = EthPrivateKey.fromHex(key);
+      }
+
+      _contractToken = ERC20Contract(
+        _chainId!.toInt(),
+        _ethClient,
+        tokenAddress!,
+      );
+
+      await _contractToken!.init();
+
+      _cardManager = CardManagerContract(
+        _chainId!.toInt(),
+        _ethClient,
+        cardManagerAddress!,
+      );
+
+      await _cardManager!.init();
+
+      _accountFactory = AccountFactoryContract(
+        _chainId!.toInt(),
+        _ethClient,
+        accountFactoryAddress!,
+      );
+
+      await _accountFactory!.init();
+
+      _account = await _accountFactory!.getAddress(_credentials!.address.hexEip55);
+
+      _entryPoint = TokenEntryPointContract(
+        _chainId!.toInt(),
+        _ethClient,
+        entryPointAddress!,
+      );
+
+      await _entryPoint!.init();
+
+      _contractAccount = AccountContract(
+        _chainId!.toInt(),
+        _ethClient,
+        _account!.hexEip55,
+      );
+
+      await _contractAccount!.init();
+
+      _contractProfile = ProfileContract(
+        _chainId!.toInt(),
+        _ethClient,
+        profileAddress!,
+      );
+
+      await _contractProfile!.init();
+    } else if (_tokenStandard == "eosio") {
+      // TODO make API wrapper for invoiceUrl
     }
-
-    final key = _prefs.key;
-    if (key == null) {
-      final credentials = EthPrivateKey.createRandom(Random.secure());
-
-      await _prefs.setKey(bytesToHex(credentials.privateKey));
-
-      _credentials = credentials;
-    } else {
-      _credentials = EthPrivateKey.fromHex(key);
-    }
-
-    _contractToken = ERC20Contract(
-      _chainId!.toInt(),
-      _ethClient,
-      tokenAddress,
-    );
-
-    await _contractToken.init();
-
-    _cardManager = CardManagerContract(
-      _chainId!.toInt(),
-      _ethClient,
-      cardManagerAddress,
-    );
-
-    await _cardManager.init();
-
-    _accountFactory = AccountFactoryContract(
-      _chainId!.toInt(),
-      _ethClient,
-      accountFactoryAddress,
-    );
-
-    await _accountFactory.init();
-
-    _account = await _accountFactory.getAddress(_credentials.address.hexEip55);
-
-    _entryPoint = TokenEntryPointContract(
-      _chainId!.toInt(),
-      _ethClient,
-      entryPointAddress,
-    );
-
-    await _entryPoint.init();
-
-    _contractAccount = AccountContract(
-      _chainId!.toInt(),
-      _ethClient,
-      _account.hexEip55,
-    );
-
-    await _contractAccount.init();
-
-    _contractProfile = ProfileContract(
-      _chainId!.toInt(),
-      _ethClient,
-      profileAddress,
-    );
-
-    await _contractProfile.init();
   }
-
   Future<Uint8List> getCardHash(String serial, {bool local = true}) async {
-    return _cardManager.getCardHash(serial, local: local);
+    return _cardManager!.getCardHash(serial, local: local);
   }
 
   Future<EthereumAddress> getCardAddress(Uint8List hash) async {
-    return _cardManager.getCardAddress(hash);
+    return _cardManager!.getCardAddress(hash);
   }
 
-  EthereumAddress get account => _account;
-  EthereumAddress get tokenAddress => _contractToken.rcontract.address;
-  EthereumAddress get entrypointAddress => _entryPoint.rcontract.address;
-  EthereumAddress get cardManagerAddress => _cardManager.rcontract.address;
-  String get profileAddress => _contractProfile.addr;
+  EthereumAddress get account => _account!;
+  EthereumAddress get tokenAddress => _contractToken!.rcontract.address;
+  EthereumAddress get entrypointAddress => _entryPoint!.rcontract.address;
+  EthereumAddress get cardManagerAddress => _cardManager!.rcontract.address;
+  String get profileAddress => _contractProfile!.addr;
 
   Future<BigInt> getNonce(String addr) async {
-    return _entryPoint.getNonce(addr);
+    return _entryPoint!.getNonce(addr);
   }
 
   /// check if an account exists
@@ -188,9 +195,9 @@ class Web3Service {
     String? account,
   }) async {
     try {
-      final url = '/accounts/${account ?? _account.hexEip55}/exists';
+      final url = '/accounts/${account ?? _account!.hexEip55}/exists';
 
-      await _indexer.get(
+      await _indexer!.get(
         url: url,
         headers: {
           'Authorization': 'Bearer $_indexerKey',
@@ -204,7 +211,7 @@ class Web3Service {
   }
 
   Future<BigInt> getBalance(String addr) async {
-    return _contractToken.getBalance(addr);
+    return _contractToken!.getBalance(addr);
   }
 
   /// create an account
@@ -217,12 +224,12 @@ class Web3Service {
         return true;
       }
 
-      final calldata = _contractAccount.transferOwnershipCallData(
-        _credentials.address.hexEip55,
+      final calldata = _contractAccount!.transferOwnershipCallData(
+        _credentials!.address.hexEip55,
       );
 
       final (_, userop) = await prepareUserop(
-        [_account.hexEip55],
+        [_account!.hexEip55],
         [calldata],
       );
 
@@ -251,7 +258,7 @@ class Web3Service {
     required String fileType,
   }) async {
     try {
-      final url = '/profiles/v2/$profileAddress/${_account.hexEip55}';
+      final url = '/profiles/v2/$profileAddress/${_account!.hexEip55}';
 
       final json = jsonEncode(
         profile.toJson(),
@@ -260,24 +267,24 @@ class Web3Service {
       final body = SignedRequest(convertBytesToUint8List(utf8.encode(json)));
 
       final sig = await compute(
-          generateSignature, (jsonEncode(body.toJson()), _credentials));
+          generateSignature, (jsonEncode(body.toJson()), _credentials!));
 
-      final resp = await _indexerIPFS.filePut(
+      final resp = await _indexerIPFS!.filePut(
         url: url,
         file: image,
         fileType: fileType,
         headers: {
           'Authorization': 'Bearer $_indexerKey',
           'X-Signature': sig,
-          'X-Address': _account.hexEip55,
+          'X-Address': _account!.hexEip55,
         },
         body: body.toJson(),
       );
 
       final String profileUrl = resp['object']['ipfs_url'];
 
-      final calldata = _contractProfile.setCallData(
-          _account.hexEip55, profile.username, profileUrl);
+      final calldata = _contractProfile!.setCallData(
+          _account!.hexEip55, profile.username, profileUrl);
 
       final (_, userop) = await prepareUserop([profileAddress], [calldata]);
 
@@ -300,7 +307,7 @@ class Web3Service {
   /// update profile data
   Future<String?> updateProfile(ProfileV1 profile) async {
     try {
-      final url = '/profiles/v2/$profileAddress/${_account.hexEip55}';
+      final url = '/profiles/v2/$profileAddress/${_account!.hexEip55}';
 
       final json = jsonEncode(
         profile.toJson(),
@@ -309,22 +316,22 @@ class Web3Service {
       final body = SignedRequest(convertBytesToUint8List(utf8.encode(json)));
 
       final sig = await compute(
-          generateSignature, (jsonEncode(body.toJson()), _credentials));
+          generateSignature, (jsonEncode(body.toJson()), _credentials!));
 
-      final resp = await _indexerIPFS.patch(
+      final resp = await _indexerIPFS!.patch(
         url: url,
         headers: {
           'Authorization': 'Bearer $_indexerKey',
           'X-Signature': sig,
-          'X-Address': _account.hexEip55,
+          'X-Address': _account!.hexEip55,
         },
         body: body.toJson(),
       );
 
       final String profileUrl = resp['object']['ipfs_url'];
 
-      final calldata = _contractProfile.setCallData(
-          _account.hexEip55, profile.username, profileUrl);
+      final calldata = _contractProfile!.setCallData(
+          _account!.hexEip55, profile.username, profileUrl);
 
       final (_, userop) = await prepareUserop([profileAddress], [calldata]);
 
@@ -347,11 +354,11 @@ class Web3Service {
   /// set profile data
   Future<bool> unpinCurrentProfile() async {
     try {
-      final url = '/profiles/v2/$profileAddress/${_account.hexEip55}';
+      final url = '/profiles/v2/$profileAddress/${_account!.hexEip55}';
 
       final encoded = jsonEncode(
         {
-          'account': _account.hexEip55,
+          'account': _account!.hexEip55,
           'date': DateTime.now().toUtc().toIso8601String(),
         },
       );
@@ -359,14 +366,14 @@ class Web3Service {
       final body = SignedRequest(convertStringToUint8List(encoded));
 
       final sig = await compute(
-          generateSignature, (jsonEncode(body.toJson()), _credentials));
+          generateSignature, (jsonEncode(body.toJson()), _credentials!));
 
-      await _indexerIPFS.delete(
+      await _indexerIPFS!.delete(
         url: url,
         headers: {
           'Authorization': 'Bearer $_indexerKey',
           'X-Signature': sig,
-          'X-Address': _account.hexEip55,
+          'X-Address': _account!.hexEip55,
         },
         body: body.toJson(),
       );
@@ -380,9 +387,9 @@ class Web3Service {
   /// get profile data
   Future<ProfileV1?> getProfile(String addr) async {
     try {
-      final url = await _contractProfile.getURL(addr);
+      final url = await _contractProfile!.getURL(addr);
 
-      final profileData = await _ipfs.get(url: '/$url');
+      final profileData = await _ipfs!.get(url: '/$url');
 
       final profile = ProfileV1.fromJson(profileData);
 
@@ -399,7 +406,7 @@ class Web3Service {
   /// get profile data
   Future<ProfileV1?> getProfileFromUrl(String url) async {
     try {
-      final profileData = await _ipfs.get(url: '/$url');
+      final profileData = await _ipfs!.get(url: '/$url');
 
       final profile = ProfileV1.fromJson(profileData);
 
@@ -416,9 +423,9 @@ class Web3Service {
   /// get profile data by username
   Future<ProfileV1?> getProfileByUsername(String username) async {
     try {
-      final url = await _contractProfile.getURLFromUsername(username);
+      final url = await _contractProfile!.getURLFromUsername(username);
 
-      final profileData = await _ipfs.get(url: '/$url');
+      final profileData = await _ipfs!.get(url: '/$url');
 
       final profile = ProfileV1.fromJson(profileData);
 
@@ -435,7 +442,7 @@ class Web3Service {
   /// profileExists checks whether there is a profile for this username
   Future<bool> profileExists(String username) async {
     try {
-      final url = await _contractProfile.getURLFromUsername(username);
+      final url = await _contractProfile!.getURLFromUsername(username);
 
       return url != '';
     } catch (exception) {
@@ -450,7 +457,7 @@ class Web3Service {
     String to,
     BigInt amount,
   ) {
-    return _contractToken.transferCallData(
+    return _contractToken!.transferCallData(
       to,
       amount,
     );
@@ -461,10 +468,10 @@ class Web3Service {
     Uint8List hash,
     BigInt amount,
   ) {
-    return _cardManager.withdrawCallData(
+    return _cardManager!.withdrawCallData(
       hash,
-      _contractToken.addr,
-      _account.hexEip55,
+      _contractToken!.addr,
+      _account!.hexEip55,
       amount,
     );
   }
@@ -473,7 +480,7 @@ class Web3Service {
   Uint8List createCardCallData(
     Uint8List cardHash,
   ) {
-    return _cardManager.createAccountCallData(cardHash);
+    return _cardManager!.createAccountCallData(cardHash);
   }
 
   /// given a tx hash, waits for the tx to be mined
@@ -512,7 +519,7 @@ class Web3Service {
     SUJSONRPCRequest body, {
     bool legacy = false,
   }) async {
-    final rawResponse = await _paymasterRPC.post(
+    final rawResponse = await _paymasterRPC!.post(
       body: body,
     );
 
@@ -611,7 +618,7 @@ class Web3Service {
       List<String> dest, List<Uint8List> calldata) async {
     try {
       EthereumAddress acc =
-          await _accountFactory.getAddress(_credentials.address.hexEip55);
+          await _accountFactory!.getAddress(_credentials!.address.hexEip55);
 
       // instantiate user op with default values
       final userop = UserOp.defaultUserOp();
@@ -620,13 +627,13 @@ class Web3Service {
       userop.sender = acc.hexEip55;
 
       // determine the appropriate nonce
-      userop.nonce = await _entryPoint.getNonce(acc.hexEip55);
+      userop.nonce = await _entryPoint!.getNonce(acc.hexEip55);
 
       // if it's the first user op from this account, we need to deploy the account contract
       if (userop.nonce == BigInt.zero) {
         // construct the init code to deploy the account
-        userop.initCode = await _accountFactory.createAccountInitCode(
-          _credentials.address.hexEip55,
+        userop.initCode = await _accountFactory!.createAccountInitCode(
+          _credentials!.address.hexEip55,
           BigInt.zero,
         );
       }
@@ -634,18 +641,18 @@ class Web3Service {
       // set the appropriate call data for the transfer
       // we need to call account.execute which will call token.transfer
       userop.callData = dest.length > 1 && calldata.length > 1
-          ? _contractAccount.executeBatchCallData(
+          ? _contractAccount!.executeBatchCallData(
               dest,
               calldata,
             )
-          : _contractAccount.executeCallData(
+          : _contractAccount!.executeCallData(
               dest[0],
               BigInt.zero,
               calldata[0],
             );
 
       // set the appropriate gas fees based on network
-      final fees = await _gasPriceEstimator.estimate;
+      final fees = await _gasPriceEstimator!.estimate;
       if (fees == null) {
         throw Exception('unable to estimate fees');
       }
@@ -663,7 +670,7 @@ class Web3Service {
         PaymasterData? paymasterData;
         (paymasterData, paymasterErr) = await _getPaymasterData(
           userop,
-          _entryPoint.addr,
+          _entryPoint!.addr,
           'cw',
         );
 
@@ -674,7 +681,7 @@ class Web3Service {
         // if it's not the first user op, we should use an out of order paymaster signature
         (paymasterOOData, paymasterErr) = await _getPaymasterOOData(
           userop,
-          _entryPoint.addr,
+          _entryPoint!.addr,
           'cw',
         );
       }
@@ -700,10 +707,10 @@ class Web3Service {
       userop.callGasLimit = paymasterData.callGasLimit;
 
       // get the hash of the user op
-      final hash = await _entryPoint.getUserOpHash(userop);
+      final hash = await _entryPoint!.getUserOpHash(userop);
 
       // now we can sign the user op
-      userop.generateSignature(_credentials, hash);
+      userop.generateSignature(_credentials!, hash);
 
       return (bytesToHex(hash, include0x: true), userop);
     } catch (_) {
@@ -713,7 +720,7 @@ class Web3Service {
 
   /// makes a jsonrpc request from this wallet
   Future<SUJSONRPCResponse> _requestBundler(SUJSONRPCRequest body) async {
-    final rawResponse = await _bundlerRPC.post(
+    final rawResponse = await _bundlerRPC!.post(
       body: body,
     );
 
@@ -790,7 +797,7 @@ class Web3Service {
       // send the user op
       final (txHash, useropErr) = await _submitUserOp(
         userop,
-        _entryPoint.addr,
+        _entryPoint!.addr,
         data: data,
       );
       if (useropErr != null) {
@@ -802,4 +809,5 @@ class Web3Service {
       rethrow;
     }
   }
+
 }
