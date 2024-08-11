@@ -31,7 +31,7 @@ class ConfigService {
   static const int version = 3;
 
   final PreferencesService _pref = PreferencesService();
-  late APIService _api;
+  APIService? _api; // null when using local config file
   late APIService _communityServer;
 
   List<Config> _configs = [];
@@ -121,13 +121,11 @@ class ConfigService {
   }
 
   void init(String endpoint) {
-    _api = APIService(baseURL: endpoint);
-
-    if (kDebugMode) {
+    if (kDebugMode || endpoint == "local") {
       _loadFromLocal();
       return;
     }
-
+    _api = APIService(baseURL: endpoint);
     _loadFromCache();
   }
 
@@ -153,26 +151,27 @@ class ConfigService {
   }
 
   Future<List<Config>> getConfigs({String? alias}) async {
-    if (kDebugMode) {
+    if (_api == null) {
       final localConfigs = jsonDecode(await rootBundle.loadString(
           'assets/config/v$version/$communityConfigListFileName.json'));
 
       final configs =
           (localConfigs as List).map((e) => Config.fromJson(e)).toList();
 
+      _pref.setConfigs(localConfigs);
       return configs;
     }
 
     if (alias != null) {
       // we only need a single file for the web
-      final response = await _api.get(
+      final response = await _api!.get(
           url:
               '/v$version/$alias.json?cachebuster=${generateCacheBusterValue()}');
 
       return [Config.fromJson(response)];
     }
 
-    final response = await _api.get(
+    final response = await _api!.get(
         url:
             '/v$version/$communityConfigListFileName.json?cachebuster=${generateCacheBusterValue()}');
 
