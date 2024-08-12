@@ -14,16 +14,18 @@ class CustomBottomAppBar extends StatelessWidget {
   final ScanLogic logic;
   final ProductsLogic? productsLogic;
   final RewardsLogic? rewardsLogic;
+  final bool locked;
 
   const CustomBottomAppBar({
     super.key,
     required this.logic,
     this.productsLogic,
     this.rewardsLogic,
+    this.locked = true,
   });
 
   void handleCommunityPress(BuildContext context, Config config) async {
-    await logic.load(alias: config.community.alias);
+    await logic.load(alias: config.community.alias, filtered: locked);
     productsLogic?.updateToken(config.token.address);
     rewardsLogic?.updateToken(config.token.address);
   }
@@ -37,6 +39,7 @@ class CustomBottomAppBar extends StatelessWidget {
 
     final config = context.select((ScanState s) => s.config);
     final configs = context.select((ScanState s) => s.configs);
+    final activeAliases = context.select((ScanState s) => s.activeAliases);
 
     final redeeming = context.watch<ScanState>().redeeming;
 
@@ -83,7 +86,8 @@ class CustomBottomAppBar extends StatelessWidget {
                 enabled: !redeeming,
                 offset: const Offset(0, 40),
                 itemBuilder: (BuildContext context) => configs
-                    .where((c) => c.cards != null)
+                    .where((c) => locked ? activeAliases.contains(c.community.alias) :
+                                    true)
                     .map<PopupMenuEntry<Config>>(
                       (c) => PopupMenuItem<Config>(
                         value: c,

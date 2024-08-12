@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import 'package:scanner/router/bottom_tabs.dart';
+import 'package:scanner/services/preferences/service.dart';
 import 'package:scanner/services/web3/utils.dart';
 import 'package:scanner/state/app/logic.dart';
 import 'package:scanner/state/app/state.dart';
@@ -24,6 +25,7 @@ class KioskScreen extends StatefulWidget {
 
 class _KioskScreenState extends State<KioskScreen> {
   final ScanLogic _scanLogic = ScanLogic();
+  final PreferencesService _prefs = PreferencesService();
   late AppLogic _appLogic;
   late ProfileLogic _profileLogic;
 
@@ -354,6 +356,27 @@ class _KioskScreenState extends State<KioskScreen> {
     );
   }
 
+  void handleActiveInactive(BuildContext context) async {
+    ScanState _state = context.read<ScanState>();
+    if (_state.config == null) {
+      return;
+    }
+    final alias = _state.config!.community.alias;
+    var newActives = _state.activeAliases;
+    bool removeIt = _state.activeAliases.contains(alias);
+    if (removeIt) {
+      newActives.remove(alias);
+    } else {
+      newActives.add(alias);
+    }
+    _state.setActiveAliases(newActives);
+    _prefs.setActiveAliases(newActives);
+    _state.setConfig(_state.configs.first);
+    if (removeIt) {
+      await _scanLogic.load(alias: _state.configs.first.community.alias, filtered: true);
+    }
+  }
+
   void handleSetProfile() async {
     GoRouter.of(context).push('/kiosk/profile');
   }
@@ -384,6 +407,9 @@ class _KioskScreenState extends State<KioskScreen> {
   @override
   Widget build(BuildContext context) {
     final mode = context.select((AppState s) => s.mode);
+    final config = context.select((ScanState s) => s.config);
+    final activeAliases = context.select((ScanState s) => s.activeAliases);
+    final aliasIsActive = config != null && activeAliases.contains(config.community.alias);
 
     final profile = context.watch<ProfileState>();
 
@@ -539,6 +565,24 @@ class _KioskScreenState extends State<KioskScreen> {
                                     ),
                                   ),
                                   const SizedBox(
+                                    height: 20,
+                                  ),
+                                  FilledButton.icon(
+                                    onPressed: () => handleActiveInactive(context),
+                                    icon: Icon(aliasIsActive ? Icons.delete : Icons.check),
+                                    style: const ButtonStyle(
+                                      backgroundColor:
+                                          WidgetStatePropertyAll(Colors.black),
+                                      minimumSize: WidgetStatePropertyAll(
+                                        Size(100, 60),
+                                      ),
+                                    ),
+                                    label: Text( aliasIsActive ?
+                                      'Make token inactive' : 'Make token active',
+                                      style: TextStyle(fontSize: 24),
+                                    ),
+                                  ),
+                                  const SizedBox(
                                     height: 60,
                                   ),
                                   const Text(
@@ -609,6 +653,7 @@ class _KioskScreenState extends State<KioskScreen> {
           ),
           bottomNavigationBar: CustomBottomAppBar(
             logic: _scanLogic,
+            locked: _locked,
           ),
         ),
         NfcOverlay(
