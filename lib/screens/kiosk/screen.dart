@@ -371,7 +371,7 @@ class _KioskScreenState extends State<KioskScreen> {
     }
     _state.setActiveAliases(newActives);
     _prefs.setActiveAliases(newActives);
-    _state.setConfig(_state.configs.first);
+    //_state.setConfig(_state.configs.first);
     if (removeIt) {
       await _scanLogic.load(alias: _state.configs.first.community.alias, filtered: true);
     }
@@ -561,24 +561,6 @@ class _KioskScreenState extends State<KioskScreen> {
                                     ),
                                     label: const Text(
                                       'Withdraw faucet',
-                                      style: TextStyle(fontSize: 24),
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    height: 20,
-                                  ),
-                                  FilledButton.icon(
-                                    onPressed: () => handleActiveInactive(context),
-                                    icon: Icon(aliasIsActive ? Icons.delete : Icons.check),
-                                    style: const ButtonStyle(
-                                      backgroundColor:
-                                          WidgetStatePropertyAll(Colors.black),
-                                      minimumSize: WidgetStatePropertyAll(
-                                        Size(100, 60),
-                                      ),
-                                    ),
-                                    label: Text( aliasIsActive ?
-                                      'Make token inactive' : 'Make token active',
                                       style: TextStyle(fontSize: 24),
                                     ),
                                   ),
