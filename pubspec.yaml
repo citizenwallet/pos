@@ -86,6 +86,7 @@ flutter:
     - assets/icons/profile.png
     - assets/icons/contactless.svg
     - assets/icons/community.svg
+    - assets/icons/select.svg
     - assets/contracts/AccountFactory.json
     - assets/contracts/TokenEntryPoint.json
     - assets/contracts/Account.json

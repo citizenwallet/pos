@@ -42,7 +42,11 @@ class ScanLogic extends WidgetsBindingObserver {
     _profileLogic = ProfileLogic(context);
   }
 
-  Future<Config?> load({String? alias}) async {
+  bool configIsUsable(Config c) {
+    return c.cards != null;
+  }
+
+  Future<Config?> load({String? alias, bool filtered = true}) async {
     try {
       _state.loadScanner();
 
@@ -50,17 +54,31 @@ class ScanLogic extends WidgetsBindingObserver {
 
       _web3 = Web3Service();
 
+      List<String> activeAliases = _preferences.getActiveAliases();
       String? selectedAlias = alias ?? _preferences.getLastAlias();
-      if (selectedAlias == null) {
-        final configs =
-            (await _config.getConfigs()).where((c) => c.cards != null).toList();
-
-        if (configs.isEmpty) {
-          throw Exception('No configs');
+      List<Config> configs;
+      if (filtered) {
+        if (activeAliases.isEmpty) {
+          configs = 
+            (await _config.getConfigs()).where((c) => configIsUsable(c)).toList();
+          activeAliases = configs.map((c) => c.community.alias).toList();
+          _preferences.setActiveAliases(activeAliases);
+        } else {
+          configs =
+            (await _config.getConfigs()).where((c) => activeAliases.contains(c.community.alias)).toList();
         }
-
-        selectedAlias = configs.first.community.alias;
+        _state.setActiveAliases(activeAliases);
+        if (selectedAlias == null || !activeAliases.contains(selectedAlias!)) {
+          selectedAlias = configs.first.community.alias;
+        }
+      } else {
+        configs = (await _config.getConfigs()).where((c) => configIsUsable(c)).toList();
+        selectedAlias ??= configs.first.community.alias;
       }
+      if (configs.isEmpty) {
+         throw Exception('No active configs');
+      }
+      _state.setConfigs(configs);
 
       final config = await _config.getConfig(selectedAlias);
 

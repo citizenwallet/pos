@@ -137,6 +137,12 @@ class ScanState with ChangeNotifier {
     configs = newConfigs;
     notifyListeners();
   }
+  
+  List<String> activeAliases = [];
+  void setActiveAliases(List<String> aliases) {
+    activeAliases = aliases;
+    notifyListeners();
+  }
 
   bool nfcReading = false;
 

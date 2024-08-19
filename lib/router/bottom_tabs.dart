@@ -14,16 +14,21 @@ class CustomBottomAppBar extends StatelessWidget {
   final ScanLogic logic;
   final ProductsLogic? productsLogic;
   final RewardsLogic? rewardsLogic;
+  final bool locked;
 
   const CustomBottomAppBar({
     super.key,
     required this.logic,
     this.productsLogic,
     this.rewardsLogic,
+    this.locked = true,
   });
 
   void handleCommunityPress(BuildContext context, Config config) async {
-    await logic.load(alias: config.community.alias);
+    if (config.community.alias == "selectorSlug") {
+      context.go('/kiosk/tokens');
+    }
+    await logic.load(alias: config.community.alias, filtered: locked);
     productsLogic?.updateToken(config.token.address);
     rewardsLogic?.updateToken(config.token.address);
   }
@@ -37,10 +42,28 @@ class CustomBottomAppBar extends StatelessWidget {
 
     final config = context.select((ScanState s) => s.config);
     final configs = context.select((ScanState s) => s.configs);
+    final activeAliases = context.select((ScanState s) => s.activeAliases);
 
     final redeeming = context.watch<ScanState>().redeeming;
 
     final mode = context.select((AppState s) => s.mode);
+    final Config selectorSlug = Config(
+      community: CommunityConfig(
+        name: "Choose available tokens",
+        description: "",
+        url: "",
+        alias: "selectorSlug",
+        logo: "assets/icons/select.svg",
+        theme: ColorTheme() ),
+      scan: ScanConfig(url: "", name: ""),
+      indexer: IndexerConfig(url: "", ipfsUrl: "", key: ""),
+      ipfs: IPFSConfig(url: ""),
+      node: NodeConfig(chainId: 0, url: "", wsUrl: ""),
+      erc4337: ERC4337Config(rpcUrl: "", entrypointAddress: "", accountFactoryAddress: "", paymasterRPCUrl: "", paymasterType: ""),
+      token: TokenConfig(standard: "", address: "", name: "toke", symbol: "sym", decimals: 4),
+      profile: ProfileConfig(address: ""),
+      plugins: []
+    );
 
     if (mode == AppMode.locked) {
       return const SizedBox();
@@ -82,8 +105,9 @@ class CustomBottomAppBar extends StatelessWidget {
                 },
                 enabled: !redeeming,
                 offset: const Offset(0, 40),
-                itemBuilder: (BuildContext context) => configs
-                    .where((c) => c.cards != null)
+                itemBuilder: (BuildContext context) => ((locked ? [] : [selectorSlug]) + configs)
+                    .where((c) => activeAliases.contains(c.community.alias)
+                      || c.community.alias=="selectorSlug")
                     .map<PopupMenuEntry<Config>>(
                       (c) => PopupMenuItem<Config>(
                         value: c,
@@ -95,26 +119,33 @@ class CustomBottomAppBar extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               const SizedBox(width: 8),
-                              config?.community.logo != null
-                                  ? SvgPicture.network(
-                                      c.community.logo,
-                                      semanticsLabel: 'contactless payment',
-                                      height: 30,
-                                      width: 30,
-                                      placeholderBuilder: (context) =>
-                                          SvgPicture.asset(
-                                        'assets/icons/community.svg',
-                                        semanticsLabel: 'community icon',
-                                        height: 30,
-                                        width: 30,
-                                      ),
-                                    )
-                                  : SvgPicture.asset(
+                              c.community.logo == null
+                                  ? SvgPicture.asset(
                                       'assets/icons/community.svg',
                                       semanticsLabel: 'community icon',
                                       height: 30,
                                       width: 30,
-                                    ),
+                                    )
+                                  : c.community.logo.startsWith("assets")
+                                    ? SvgPicture.asset(
+                                      c.community.logo,
+                                      semanticsLabel: 'selector',
+                                      height: 30,
+                                      width: 30,
+                                    )
+                                    : SvgPicture.network(
+                                        c.community.logo,
+                                        semanticsLabel: 'contactless payment',
+                                        height: 30,
+                                        width: 30,
+                                        placeholderBuilder: (context) =>
+                                            SvgPicture.asset(
+                                          'assets/icons/community.svg',
+                                          semanticsLabel: 'community icon',
+                                          height: 30,
+                                          width: 30,
+                                        ),
+                                      ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -127,6 +158,10 @@ class CustomBottomAppBar extends StatelessWidget {
                                             c.community.alias
                                         ? FontWeight.bold
                                         : FontWeight.normal,
+                                    fontStyle: activeAliases.contains
+                                            (c.community.alias)
+                                        ? FontStyle.normal
+                                        : FontStyle.italic,
                                   ),
                                 ),
                               ),

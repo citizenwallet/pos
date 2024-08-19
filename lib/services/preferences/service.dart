@@ -56,6 +56,18 @@ class PreferencesService {
     return jsonDecode(config);
   }
 
+  void setActiveAliases(List<String> aliases) {
+    _preferences.setString('activeAliases', jsonEncode(aliases));
+  }
+
+  List<String> getActiveAliases() {
+    final aliases = _preferences.getString('activeAliases');
+    if (aliases == null) {
+      return [];
+    }
+    return (jsonDecode(aliases) as List).map((e) => e as String).toList();
+  }
+  
   Future setLastAlias(String value) async {
     await _preferences.setString('lastAlias', value);
   }

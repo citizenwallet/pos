@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:scanner/screens/faucet/tabs/amount/manage.dart';
 import 'package:scanner/screens/kiosk/profile_edit.dart';
 import 'package:scanner/screens/kiosk/screen.dart';
+import 'package:scanner/screens/kiosk/tokens_select.dart';
 import 'package:scanner/screens/pos/screen.dart';
 import 'package:scanner/screens/pos/tabs/amount/manage.dart';
 import 'package:scanner/screens/faucet/screen.dart';
@@ -66,6 +67,12 @@ GoRouter createRouter(
           path: '/kiosk/profile',
           parentNavigatorKey: rootNavigatorKey,
           builder: (context, state) => const EditProfileScreen(),
+        ),
+        GoRoute(
+          name: "Tokens",
+          path: '/kiosk/tokens',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const SelectTokensScreen(),
         ),
       ],
     );
