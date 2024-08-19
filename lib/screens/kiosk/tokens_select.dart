@@ -32,22 +32,6 @@ class SelectTokensScreenState extends State<SelectTokensScreen> {
   @override
   void initState() {
     super.initState();
-
-     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // initial requests go here
-      onLoad();
-    });
-  }
-
-  void onLoad() async {
-    await delay(const Duration(milliseconds: 250));
-
-   // _logic.startEdit();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override
@@ -61,11 +45,8 @@ class SelectTokensScreenState extends State<SelectTokensScreen> {
         itemCount: configs.length,
         itemBuilder: (context, index) {
           return SwitchListTile(
-        // 2.
             title: Text('${configs[index].community.name}'),
-        // 3.
             value: activeAliases.contains(configs[index].community.alias),
-        // 4.
             onChanged: (bool value) {
               setState(() {
                 final alias = configs[index].community.alias;

@@ -356,27 +356,6 @@ class _KioskScreenState extends State<KioskScreen> {
     );
   }
 
-  void handleActiveInactive(BuildContext context) async {
-    ScanState _state = context.read<ScanState>();
-    if (_state.config == null) {
-      return;
-    }
-    final alias = _state.config!.community.alias;
-    var newActives = _state.activeAliases;
-    bool removeIt = _state.activeAliases.contains(alias);
-    if (removeIt) {
-      newActives.remove(alias);
-    } else {
-      newActives.add(alias);
-    }
-    _state.setActiveAliases(newActives);
-    _prefs.setActiveAliases(newActives);
-    //_state.setConfig(_state.configs.first);
-    if (removeIt) {
-      await _scanLogic.load(alias: _state.configs.first.community.alias, filtered: true);
-    }
-  }
-
   void handleSetProfile() async {
     GoRouter.of(context).push('/kiosk/profile');
   }
