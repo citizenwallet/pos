@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
+import 'package:scanner/services/web3/contracts/cards/interface.dart';
 import 'package:web3dart/crypto.dart';
 import 'package:web3dart/web3dart.dart';
 
-class CardManagerContract {
+class CardManagerContract implements AbstractCardManagerContract {
   final int chainId;
   final Web3Client client;
   final String addr;
@@ -13,6 +14,10 @@ class CardManagerContract {
 
   CardManagerContract(this.chainId, this.client, this.addr);
 
+  @override
+  EthereumAddress get address => rcontract.address;
+
+  @override
   Future<void> init() async {
     final rawAbi = await rootBundle.loadString(
         'packages/smartcontracts/contracts/external/CardFactory.abi.json');
@@ -24,6 +29,7 @@ class CardManagerContract {
 
   Map<String, EthereumAddress> addressCache = {};
 
+  @override
   Future<Uint8List> getCardHash(String serial, {bool local = true}) async {
     BigInt bigIntSerial = BigInt.parse(serial, radix: 16);
 
@@ -45,6 +51,7 @@ class CardManagerContract {
     return result[0];
   }
 
+  @override
   Future<EthereumAddress> getCardAddress(Uint8List hash) async {
     final hexHash = bytesToHex(hash);
     if (addressCache.containsKey(hexHash)) {
@@ -66,6 +73,7 @@ class CardManagerContract {
     return address;
   }
 
+  @override
   Future<Uint8List> createAccountInitCode(Uint8List hash) async {
     final function = rcontract.function('createCard');
 
@@ -74,6 +82,7 @@ class CardManagerContract {
     return hexToBytes('$addr${bytesToHex(callData)}');
   }
 
+  @override
   Uint8List createAccountCallData(Uint8List hash) {
     final function = rcontract.function('createCard');
 
@@ -82,6 +91,7 @@ class CardManagerContract {
     return callData;
   }
 
+  @override
   Uint8List withdrawCallData(
       Uint8List hash, String token, String to, BigInt amount) {
     final function = rcontract.function('withdraw');

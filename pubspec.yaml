@@ -89,6 +89,8 @@ flutter:
     - assets/contracts/AccountFactory.json
     - assets/contracts/TokenEntryPoint.json
     - assets/contracts/Account.json
+    - assets/contracts/CardManagerModule.json
+    - assets/contracts/ModuleManager.json
     - assets/config/v3/communities.json
     - assets/config/v3/communities.test.json
     - packages/smartcontracts/contracts/external/CardFactory.abi.json

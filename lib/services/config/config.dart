@@ -364,6 +364,33 @@ class CardsConfig {
   }
 }
 
+class SafeCardsConfig {
+  final String cardManagerAddress;
+
+  SafeCardsConfig({
+    required this.cardManagerAddress,
+  });
+
+  factory SafeCardsConfig.fromJson(Map<String, dynamic> json) {
+    return SafeCardsConfig(
+      cardManagerAddress: json['card_manager_address'],
+    );
+  }
+
+  // to json
+  Map<String, dynamic> toJson() {
+    return {
+      'card_manager_address': cardManagerAddress,
+    };
+  }
+
+  // to string
+  @override
+  String toString() {
+    return 'SafeCardsConfig{card_manager_address: $cardManagerAddress}';
+  }
+}
+
 enum PluginLaunchMode {
   webview,
   external;
@@ -461,6 +488,7 @@ class Config {
   final TokenConfig token;
   final ProfileConfig profile;
   final CardsConfig? cards;
+  final SafeCardsConfig? safeCards;
   final List<PluginConfig> plugins;
   final int version;
 
@@ -474,6 +502,7 @@ class Config {
     required this.token,
     required this.profile,
     this.cards,
+    this.safeCards,
     required this.plugins,
     this.version = 0,
   });
@@ -489,6 +518,9 @@ class Config {
       token: TokenConfig.fromJson(json['token']),
       profile: ProfileConfig.fromJson(json['profile']),
       cards: json['cards'] != null ? CardsConfig.fromJson(json['cards']) : null,
+      safeCards: json['safe_cards'] != null
+          ? SafeCardsConfig.fromJson(json['safe_cards'])
+          : null,
       plugins: json['plugins'] != null
           ? (json['plugins'] as List)
               .map((e) => PluginConfig.fromJson(e))

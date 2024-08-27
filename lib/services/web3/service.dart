@@ -5,11 +5,14 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
 import 'package:scanner/services/api/api.dart';
+import 'package:scanner/services/config/config.dart';
 import 'package:scanner/services/indexer/signed_request.dart';
 import 'package:scanner/services/preferences/service.dart';
 import 'package:scanner/services/web3/contracts/account.dart';
 import 'package:scanner/services/web3/contracts/account_factory.dart';
-import 'package:scanner/services/web3/contracts/card_manager.dart';
+import 'package:scanner/services/web3/contracts/cards/card_manager.dart';
+import 'package:scanner/services/web3/contracts/cards/interface.dart';
+import 'package:scanner/services/web3/contracts/cards/safe_card_manager.dart';
 import 'package:scanner/services/web3/contracts/entrypoint.dart';
 import 'package:scanner/services/web3/contracts/erc20.dart';
 import 'package:scanner/services/web3/contracts/profile.dart';
@@ -53,12 +56,13 @@ class Web3Service {
   late APIService _indexerIPFS;
   late APIService _bundlerRPC;
   late APIService _paymasterRPC;
+  String paymasterType = 'cw';
 
   late EthereumAddress _account;
   late EthPrivateKey _credentials;
 
   late ERC20Contract _contractToken;
-  late CardManagerContract _cardManager;
+  late AbstractCardManagerContract _cardManager;
   late AccountFactoryContract _accountFactory;
   late TokenEntryPointContract _entryPoint;
   late AccountContract _contractAccount;
@@ -67,30 +71,29 @@ class Web3Service {
   late EIP1559GasPriceEstimator _gasPriceEstimator;
 
   Future<void> init(
-    String rpcUrl,
-    String ipfsUrl,
-    String bundlerUrl,
-    String indexerUrl,
-    String indexerIPFSUrl,
-    String paymasterUrl,
-    String paymasterAddress,
-    String cardManagerAddress,
-    String accountFactoryAddress,
-    String entryPointAddress,
-    String tokenAddress,
-    String profileAddress,
+    Config config,
   ) async {
-    _url = rpcUrl;
-    _ipfsUrl = ipfsUrl;
+    if (config.cards?.cardFactoryAddress == null &&
+        config.safeCards?.cardManagerAddress == null) {
+      throw Exception('No card manager address');
+    }
+
+    paymasterType = config.erc4337.paymasterType;
+
+    _url = config.node.url;
+    _ipfsUrl = config.ipfs.url;
     _ethClient = Web3Client(_url, _client);
 
-    _rpc = APIService(baseURL: rpcUrl);
-    _ipfs = APIService(baseURL: ipfsUrl);
+    _rpc = APIService(baseURL: config.node.url);
+    _ipfs = APIService(baseURL: config.ipfs.url);
 
-    _indexer = APIService(baseURL: indexerUrl);
-    _indexerIPFS = APIService(baseURL: indexerIPFSUrl);
-    _bundlerRPC = APIService(baseURL: '$bundlerUrl/$paymasterAddress');
-    _paymasterRPC = APIService(baseURL: '$paymasterUrl/$paymasterAddress');
+    _indexer = APIService(baseURL: config.indexer.url);
+    _indexerIPFS = APIService(baseURL: config.indexer.ipfsUrl);
+    _bundlerRPC = APIService(
+        baseURL: '${config.erc4337.rpcUrl}/${config.erc4337.paymasterAddress}');
+    _paymasterRPC = APIService(
+        baseURL:
+            '${config.erc4337.paymasterRPCUrl}/${config.erc4337.paymasterAddress}');
 
     _gasPriceEstimator = EIP1559GasPriceEstimator(
       _rpc,
@@ -117,23 +120,34 @@ class Web3Service {
     _contractToken = ERC20Contract(
       _chainId!.toInt(),
       _ethClient,
-      tokenAddress,
+      config.token.address,
     );
 
     await _contractToken.init();
 
-    _cardManager = CardManagerContract(
-      _chainId!.toInt(),
-      _ethClient,
-      cardManagerAddress,
-    );
+    if (config.cards?.cardFactoryAddress != null) {
+      _cardManager = CardManagerContract(
+        _chainId!.toInt(),
+        _ethClient,
+        config.cards!.cardFactoryAddress,
+      );
+    }
+
+    if (config.safeCards?.cardManagerAddress != null) {
+      _cardManager = SafeCardManagerContract(
+        keccak256(convertStringToUint8List('test')),
+        _chainId!.toInt(),
+        _ethClient,
+        config.safeCards!.cardManagerAddress,
+      );
+    }
 
     await _cardManager.init();
 
     _accountFactory = AccountFactoryContract(
       _chainId!.toInt(),
       _ethClient,
-      accountFactoryAddress,
+      config.erc4337.accountFactoryAddress,
     );
 
     await _accountFactory.init();
@@ -143,7 +157,7 @@ class Web3Service {
     _entryPoint = TokenEntryPointContract(
       _chainId!.toInt(),
       _ethClient,
-      entryPointAddress,
+      config.erc4337.entrypointAddress,
     );
 
     await _entryPoint.init();
@@ -159,7 +173,7 @@ class Web3Service {
     _contractProfile = ProfileContract(
       _chainId!.toInt(),
       _ethClient,
-      profileAddress,
+      config.profile.address,
     );
 
     await _contractProfile.init();
@@ -176,7 +190,7 @@ class Web3Service {
   EthereumAddress get account => _account;
   EthereumAddress get tokenAddress => _contractToken.rcontract.address;
   EthereumAddress get entrypointAddress => _entryPoint.rcontract.address;
-  EthereumAddress get cardManagerAddress => _cardManager.rcontract.address;
+  EthereumAddress get cardManagerAddress => _cardManager.address;
   String get profileAddress => _contractProfile.addr;
 
   Future<BigInt> getNonce(String addr) async {
@@ -446,10 +460,7 @@ class Web3Service {
   }
 
   /// construct withdraw call data
-  Uint8List erc20TransferCallData(
-    String to,
-    BigInt amount,
-  ) {
+  Uint8List erc20TransferCallData(String to, BigInt amount) {
     return _contractToken.transferCallData(
       to,
       amount,
@@ -608,7 +619,8 @@ class Web3Service {
 
   /// prepare a userop for with calldata
   Future<(String, UserOp)> prepareUserop(
-      List<String> dest, List<Uint8List> calldata) async {
+      List<String> dest, List<Uint8List> calldata,
+      {String ptype = 'cw'}) async {
     try {
       EthereumAddress acc =
           await _accountFactory.getAddress(_credentials.address.hexEip55);
@@ -643,6 +655,13 @@ class Web3Service {
               BigInt.zero,
               calldata[0],
             );
+      if (ptype == 'cw-safe' && dest.length == 1 && calldata.length == 1) {
+        userop.callData = _contractAccount.execTransactionFromModuleCallData(
+          dest[0],
+          BigInt.zero,
+          calldata[0],
+        );
+      }
 
       // set the appropriate gas fees based on network
       final fees = await _gasPriceEstimator.estimate;
@@ -664,7 +683,7 @@ class Web3Service {
         (paymasterData, paymasterErr) = await _getPaymasterData(
           userop,
           _entryPoint.addr,
-          'cw',
+          ptype,
         );
 
         if (paymasterData != null) {
@@ -675,7 +694,7 @@ class Web3Service {
         (paymasterOOData, paymasterErr) = await _getPaymasterOOData(
           userop,
           _entryPoint.addr,
-          'cw',
+          ptype,
         );
       }
 

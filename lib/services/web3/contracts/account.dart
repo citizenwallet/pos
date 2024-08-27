@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:web3dart/crypto.dart';
 
 import 'package:web3dart/web3dart.dart';
 
@@ -10,25 +11,24 @@ class AccountContract {
   final Web3Client client;
   final String addr;
   late DeployedContract rcontract;
+  late DeployedContract mcontract;
 
   AccountContract(this.chainId, this.client, this.addr);
 
   Future<void> init() async {
-    final rawAbi = await rootBundle.loadString(
+    String rawAbi = await rootBundle.loadString(
         'packages/smartcontracts/contracts/accounts/Account.abi.json');
 
     final cabi = ContractAbi.fromJson(rawAbi, 'Account');
 
     rcontract = DeployedContract(cabi, EthereumAddress.fromHex(addr));
+
+    rawAbi = await rootBundle.loadString('assets/contracts/ModuleManager.json');
+
+    final mabi = ContractAbi.fromJson(rawAbi, 'ModuleManager');
+
+    mcontract = DeployedContract(mabi, EthereumAddress.fromHex(addr));
   }
-
-  // Future<EthereumAddress> tokenEntryPoint() async {
-  //   return contract.tokenEntryPoint();
-  // }
-
-  // Future<EthereumAddress> owner() async {
-  //   return contract.owner();
-  // }
 
   Uint8List executeCallData(String dest, BigInt amount, Uint8List calldata) {
     final function = rcontract.function('execute');
@@ -46,6 +46,22 @@ class AccountContract {
     return function.encodeCall([
       dest.map((d) => EthereumAddress.fromHex(d)).toList(),
       calldata,
+    ]);
+  }
+
+  // SAFE
+  Uint8List execTransactionFromModuleCallData(
+    String dest,
+    BigInt amount,
+    Uint8List calldata,
+  ) {
+    final function = mcontract.function('execTransactionFromModule');
+
+    return function.encodeCall([
+      EthereumAddress.fromHex(dest),
+      amount,
+      calldata,
+      BigInt.zero,
     ]);
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:scanner/services/config/config.dart';
 import 'package:scanner/services/config/service.dart';
+import 'package:scanner/services/nfc/cpay_device.dart';
 import 'package:scanner/services/nfc/default.dart';
 import 'package:scanner/services/nfc/service.dart';
 import 'package:scanner/services/preferences/service.dart';
@@ -64,7 +65,7 @@ class ScanLogic extends WidgetsBindingObserver {
 
       final config = await _config.getConfig(selectedAlias);
 
-      if (config.cards == null) {
+      if (config.cards == null && config.safeCards == null) {
         throw Exception('No cards');
       }
 
@@ -73,18 +74,7 @@ class ScanLogic extends WidgetsBindingObserver {
       }
 
       await _web3.init(
-        config.node.url,
-        config.ipfs.url,
-        config.erc4337.rpcUrl,
-        config.indexer.url,
-        config.indexer.ipfsUrl,
-        config.erc4337.paymasterRPCUrl,
-        config.erc4337.paymasterAddress!,
-        config.cards!.cardFactoryAddress,
-        config.erc4337.accountFactoryAddress,
-        config.erc4337.entrypointAddress,
-        config.token.address,
-        config.profile.address,
+        config,
       );
 
       _profileLogic.resetAll();
@@ -105,7 +95,10 @@ class ScanLogic extends WidgetsBindingObserver {
 
       _state.scannerReady();
       return config;
-    } catch (_) {}
+    } catch (e, s) {
+      debugPrint('Error loading config: $e');
+      debugPrint('Stacktrace: $s');
+    }
 
     _state.scannerNotReady();
 
@@ -248,8 +241,11 @@ class ScanLogic extends WidgetsBindingObserver {
         _state.updateStatus(ScanStateType.redeeming);
       }
 
-      final (_, userop) =
-          await _web3.prepareUserop([_web3.tokenAddress.hexEip55], [calldata]);
+      final (_, userop) = await _web3.prepareUserop(
+        [_web3.tokenAddress.hexEip55],
+        [calldata],
+        ptype: _web3.paymasterType,
+      );
 
       final data = TransferData(
         description ?? 'Redeem',
@@ -286,7 +282,10 @@ class ScanLogic extends WidgetsBindingObserver {
 
       runningRedeemAction = '';
       return;
-    } catch (e) {
+    } catch (e, s) {
+      debugPrint('Error redeeming: $e');
+      debugPrint('Stacktrace: $s');
+
       resetStatusTimer?.cancel();
       resetStatusTimer = Timer(const Duration(seconds: 5), () {
         _state.updateStatus(ScanStateType.ready);
@@ -351,7 +350,10 @@ class ScanLogic extends WidgetsBindingObserver {
       _state.updateStatus(ScanStateType.redeeming);
 
       final (_, userop) = await _web3.prepareUserop(
-          [_web3.cardManagerAddress.hexEip55], [withdrawCallData]);
+        [_web3.cardManagerAddress.hexEip55],
+        [withdrawCallData],
+        ptype: _web3.paymasterType,
+      );
 
       final data = TransferData(
         description ?? 'Purchased for $amount',
@@ -400,8 +402,11 @@ class ScanLogic extends WidgetsBindingObserver {
 
       final calldata = _web3.erc20TransferCallData(address, balance);
 
-      final (_, userop) =
-          await _web3.prepareUserop([_web3.tokenAddress.hexEip55], [calldata]);
+      final (_, userop) = await _web3.prepareUserop(
+        [_web3.tokenAddress.hexEip55],
+        [calldata],
+        ptype: _web3.paymasterType,
+      );
 
       final data = TransferData(
         'Withdraw balance',
@@ -459,7 +464,9 @@ class ScanLogic extends WidgetsBindingObserver {
       _state.setAddressBalance(formattedBalance);
 
       return address.hexEip55;
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('Error reading NFC: $e');
+      debugPrint('Stacktrace: $s');
       _state.setNfcAddressError();
       _state.setAddressBalance(null);
       _state.setNfcReading(false);
