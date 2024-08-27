@@ -33,24 +33,10 @@ class SafeCardManagerContract implements AbstractCardManagerContract {
 
   @override
   Future<Uint8List> getCardHash(String serial, {bool local = true}) async {
-    Uint8List serialHash = keccak256(convertStringToUint8List(serial));
+    BigInt bigIntSerial = BigInt.parse(serial, radix: 16);
+    Uint8List serialHash = keccak256(convertBigIntToUint8List(bigIntSerial));
 
-    if (local) {
-      return keccak256EncodePacked(
-        [id, serialHash, EthereumAddress.fromHex(addr)],
-        ['bytes32', 'bytes32', 'address'],
-      );
-    }
-
-    final function = rcontract.function('getCardHash');
-
-    final result = await client.call(
-      contract: rcontract,
-      function: function,
-      params: [id, serialHash],
-    );
-
-    return result[0];
+    return serialHash;
   }
 
   @override

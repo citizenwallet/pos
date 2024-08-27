@@ -26,3 +26,21 @@ Uint8List convertBytesToUint8List(List<int> bytes) {
 List<int> convertUint8ListToBytes(Uint8List bytes) {
   return bytes.toList();
 }
+
+Uint8List convertBigIntToUint8List(BigInt value) {
+  // Convert BigInt to hexadecimal string
+  String hexString = value.toRadixString(16);
+
+  // Ensure even length by padding with '0' if necessary
+  if (hexString.length % 2 != 0) {
+    hexString = '0$hexString';
+  }
+
+  // Convert hex string to Uint8List
+  List<int> bytes = [];
+  for (int i = 0; i < hexString.length; i += 2) {
+    bytes.add(int.parse(hexString.substring(i, i + 2), radix: 16));
+  }
+
+  return Uint8List.fromList(bytes);
+}
