@@ -54,7 +54,7 @@ class ScanLogic extends WidgetsBindingObserver {
       String? selectedAlias = alias ?? _preferences.getLastAlias();
       if (selectedAlias == null) {
         final configs =
-            (await _config.getConfigs()).where((c) => c.cards != null).toList();
+            (await _config.getConfigs()).where((c) => c.hasCards()).toList();
 
         if (configs.isEmpty) {
           throw Exception('No configs');
@@ -65,7 +65,7 @@ class ScanLogic extends WidgetsBindingObserver {
 
       final config = await _config.getConfig(selectedAlias);
 
-      if (config.cards == null && config.safeCards == null) {
+      if (!config.hasCards()) {
         throw Exception('No cards');
       }
 

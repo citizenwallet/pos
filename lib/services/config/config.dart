@@ -552,4 +552,8 @@ class Config {
   String toString() {
     return 'Config{community: $community, scan: $scan, indexer: $indexer, ipfs: $ipfs, node: $node, erc4337: $erc4337, token: $token, profile: $profile}';
   }
+
+  bool hasCards() {
+    return cards != null || safeCards != null;
+  }
 }
