@@ -152,13 +152,15 @@ class ConfigService {
     _configs = (localFile as List).map((e) => Config.fromJson(e)).toList();
   }
 
-  Future<List<Config>> getConfigs({String? alias}) async {
+  Future<List<Config>> getConfigs({String? alias, hidden = false}) async {
     if (kDebugMode) {
       final localConfigs = jsonDecode(await rootBundle.loadString(
           'assets/config/v$version/$communityConfigListFileName.json'));
 
-      final configs =
-          (localConfigs as List).map((e) => Config.fromJson(e)).toList();
+      final configs = (localConfigs as List)
+          .map((e) => Config.fromJson(e))
+          .where((e) => e.community.hidden == hidden)
+          .toList();
 
       return configs;
     }
@@ -178,7 +180,10 @@ class ConfigService {
 
     _pref.setConfigs(response);
 
-    final configs = (response as List).map((e) => Config.fromJson(e)).toList();
+    final configs = (response as List)
+        .map((e) => Config.fromJson(e))
+        .where((e) => e.community.hidden == hidden)
+        .toList();
 
     return configs;
   }
