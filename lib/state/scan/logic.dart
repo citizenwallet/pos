@@ -52,10 +52,10 @@ class ScanLogic extends WidgetsBindingObserver {
       _web3 = Web3Service();
 
       String? selectedAlias = alias ?? _preferences.getLastAlias();
-      if (selectedAlias == null) {
-        final configs =
-            (await _config.getConfigs()).where((c) => c.hasCards()).toList();
 
+      final configs =
+          (await _config.getConfigs()).where((c) => c.hasCards()).toList();
+      if (selectedAlias == null) {
         if (configs.isEmpty) {
           throw Exception('No configs');
         }
@@ -84,7 +84,7 @@ class ScanLogic extends WidgetsBindingObserver {
       _profileLogic.loadProfile(account: _web3.account.hexEip55);
 
       _state.setConfig(config);
-      _state.setConfigs(await _config.getConfigs());
+      _state.setConfigs(configs);
 
       final redeemAmount = _preferences.getRedeemAmount(config.token.address);
 
@@ -377,7 +377,9 @@ class ScanLogic extends WidgetsBindingObserver {
 
       _state.updateStatus(ScanStateType.ready);
       return 'Purchase confirmed';
-    } catch (e) {
+    } catch (e, s) {
+      debugPrint('Error purchasing: $e');
+      debugPrint('Stacktrace: $s');
       if (e is Exception) {
         _state.updateStatus(ScanStateType.ready);
         return e.toString();
