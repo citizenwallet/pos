@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:scanner/services/web3/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:web3dart/crypto.dart';
@@ -192,5 +194,11 @@ class UserOp {
     );
 
     this.signature = signature;
+  }
+
+  // toString returns a string representation of the user op
+  @override
+  String toString() {
+    return jsonEncode(toJson());
   }
 }
