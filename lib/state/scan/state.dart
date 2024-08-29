@@ -37,12 +37,9 @@ class ScanState with ChangeNotifier {
         (double.tryParse(vendorBalance.replaceAll(",", "")) ?? 0.0) == 0.0;
   }
 
-  bool get ready =>
-      (status == ScanStateType.ready ||
-          status == ScanStateType.verifying ||
-          status == ScanStateType.verified) &&
-      (double.tryParse(vendorBalance.replaceAll(",", "")) ?? 0.0) >=
-          (double.tryParse(redeemAmount.replaceAll(",", "")) ?? 0.0);
+  bool get ready => (status == ScanStateType.ready ||
+      status == ScanStateType.verifying ||
+      status == ScanStateType.verified);
 
   void setScannerDirection(NFCScannerDirection direction) {
     scannerDirection = direction;
