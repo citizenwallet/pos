@@ -196,7 +196,6 @@ class _KioskScreenState extends State<KioskScreen> {
 
   void handleReadNFC() async {
     final width = MediaQuery.of(context).size.width;
-    final height = MediaQuery.of(context).size.height;
 
     final address = await _scanLogic.read(
       message: 'Scan to display balance',
